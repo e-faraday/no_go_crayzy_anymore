@@ -1,0 +1,30 @@
+# Test dosyaları
+scripts/e2e-test.sh
+scripts/test-runner.sh
+E2E_TEST_RESULTS.log
+TEST_RESULTS.md
+TEST_PLAN.md
+plans/mdd_test_planı_*.plan.md
+plans/end-to-end_test_senaryosu_*.plan.md
+
+# Geçici dosyalar
+temp_extract/
+*.zip
+*.bak
+*.log
+
+# OS dosyaları
+.DS_Store
+._*
+
+# Claude active/completed (test dosyaları hariç)
+.claude/active/feature-*-test*.md
+.claude/active/feature-bulk-test*.md
+.claude/active/feature-edge-test.md
+.claude/active/bug-*.md
+.claude/completed/*/feature-*-test*.md
+.claude/completed/*/feature-bulk-test*.md
+.claude/completed/*/feature-edge-test.md
+.claude/completed/*/feature-test*.md
+.claude/completed/*/bug-*.md
+.claude/completed/*/refactor-*.md

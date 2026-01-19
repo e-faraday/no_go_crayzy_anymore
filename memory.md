@@ -1,13 +1,13 @@
-# Memory - Öğrenilen Dersler
+# Memory - Learned Lessons
 
-## Öğrenilen Dersler (Genel)
+## Learned Lessons (General)
 
 ### Pattern: Git Commit Format
-**Ne yapılmamalı:** Commit mesajlarında uzun açıklamalar yazmak
-**Ne yapılmalı:** Kısa, açıklayıcı commit mesajları kullanmak
-**Kullanım:** Tüm git commit'lerinde
+**What not to do:** Write long descriptions in commit messages
+**What to do:** Use short, descriptive commit messages
+**Usage:** In all git commits
 
-### Pattern: Context Rot Önleme
-**Ne yapılmamalı:** Tüm memory'yi her chat'te okumak
-**Ne yapılmalı:** Sadece ilgili kısımları okumak (ilk 50 satır)
-**Kullanım:** Yeni chat başlarken
+### Pattern: Context Rot Prevention
+**What not to do:** Read entire memory in every chat
+**What to do:** Read only relevant parts (first 50 lines)
+**Usage:** When starting new chat

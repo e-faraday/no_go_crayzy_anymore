@@ -1,156 +1,156 @@
 # Memory Management - Anti-Pattern Tracking
 
-## Amaç
-Debug hatalarının tekrar etmemesi için önceki denemeleri ve çözümleri hatırlamak. **Sadece aktif/kalan tasklar için** hata tekrarını önlemek. Context rot'u önlemek için memory'leri kategorize edip arşivlemek.
+## Purpose
+Remember previous attempts and solutions to prevent debug errors from repeating. **Only for active/remaining tasks** to prevent error repetition. Categorize and archive memories to prevent context rot.
 
-## Memory Yapısı
+## Memory Structure
 
 ```
-memory.md                    → General/ortak patterns (kısa özetler, max 2 sayfa)
-.claude/active/feature-X.md  → Task-specific memory (sadece aktif task için)
-.claude/completed/.../        → Task tamamlandığında arşivlenir (memory okunmaz)
+memory.md                    → General/common patterns (short summaries, max 2 pages)
+.claude/active/feature-X.md  → Task-specific memory (only for active tasks)
+.claude/completed/.../        → Archived when task is completed (memory not read)
 ```
 
-**Önemli:** Arşivlenmiş task'ların memory'leri okunmaz çünkü task tamamlandı, hata tekrarı riski yok.
+**Important:** Archived tasks' memories are not read because the task is completed, there's no risk of error repetition.
 
-## Phase 1: Hata Olduğunda → Memory'ye Yaz
+## Phase 1: When Error Occurs → Write to Memory
 
-**Tetikleyiciler:**
-- Task execution sırasında hata/error
-- Debugging gerektiren durum
-- Yön değiştirme (pivot) gerektiren durum
-- Çözüm bulunduğunda
+**Triggers:**
+- Error during task execution
+- Situation requiring debugging
+- Situation requiring direction change (pivot)
+- When solution is found
 
-**Nereye yazılacak:**
-- **Task-specific hata (aktif task için)** → Aktif task dosyasına (`.claude/active/feature-X.md`)
-- **General pattern (tüm projeler için geçerli)** → `memory.md`'ye (sadece özet, 1-2 cümle)
+**Where to write:**
+- **Task-specific error (for active task)** → To active task file (`.claude/active/feature-X.md`)
+- **General pattern (applicable to all projects)** → To `memory.md` (summary only, 1-2 sentences)
 
-**Format (Task-specific - Aktif task için):**
+**Format (Task-specific - For active task):**
 ```markdown
 ## Memory (Task-Specific)
 
-### [Hata Başlığı] - [Tarih]
-**Hata:** [Ne denendi, ne çalışmadı]
-**Çözüm:** [Ne çalıştı, nasıl çözüldü]
-**Önemli Not:** [Tekrar etmemek için ne yapılmamalı]
+### [Error Title] - [Date]
+**Error:** [What was tried, what didn't work]
+**Solution:** [What worked, how it was solved]
+**Important Note:** [What should not be done to avoid repetition]
 ```
 
-**Format (General pattern - Yeni tasklar için):**
+**Format (General pattern - For new tasks):**
 ```markdown
-## Öğrenilen Dersler (Genel)
+## Learned Lessons (General)
 
-### Pattern: [Kısa başlık]
-**Ne yapılmamalı:** [1 cümle]
-**Ne yapılmalı:** [1 cümle]
-**Kullanım:** [Hangi durumlarda]
+### Pattern: [Short title]
+**What not to do:** [1 sentence]
+**What to do:** [1 sentence]
+**Usage:** [In which situations]
 ```
 
-## Phase 2: Yeni Chat Başlarken → Memory'yi Oku
+## Phase 2: When Starting New Chat → Read Memory
 
-**Tetikleyiciler:**
-- Yeni Cursor chat başlatıldığında
-- Yeni klasör açıldığında
-- Aynı klasörde yeni chat açıldığında
-- Tamamlanmamış task için yeni session
+**Triggers:**
+- When new Cursor chat is started
+- When new folder is opened
+- When new chat is opened in same folder
+- New session for incomplete task
 
-**Ne okunacak (Sadece aktif/kalan tasklar için):**
-1. **Aktif task varsa:**
-   - Task dosyasındaki "Memory (Task-Specific)" bölümünü oku
-   - Sadece ilgili aktif task'ın memory'leri
+**What to read (Only for active/remaining tasks):**
+1. **If active task exists:**
+   - Read "Memory (Task-Specific)" section in task file
+   - Only memories of the relevant active task
    
-2. **General patterns (yeni tasklar için):**
-   - `memory.md` dosyasının ilk 50 satırını oku
-   - Sadece genel pattern'ler (task-specific değil)
+2. **General patterns (for new tasks):**
+   - Read first 50 lines of `memory.md` file
+   - Only general patterns (not task-specific)
 
-**Ne okunmayacak:**
-- ❌ Arşivlenmiş task'ların memory'leri (task tamamlandı, gerek yok)
-- ❌ Eski/ilgisiz hatalar
-- ❌ `memory.md`'nin tamamı (sadece ilk 50 satır)
-- ❌ Tamamlanmış task'ların memory'leri
+**What not to read:**
+- ❌ Memories of archived tasks (task completed, not needed)
+- ❌ Old/irrelevant errors
+- ❌ Entire `memory.md` (only first 50 lines)
+- ❌ Memories of completed tasks
 
 **Format:**
 ```
-[Yeni chat başlarken]
-"memory.md'den öğrenilenler (ilk 50 satır - genel pattern'ler):
-- ❌ [Ne yapılmamalı - genel pattern]
-- ✅ [Ne yapılmalı - genel pattern]
+[When starting new chat]
+"Learned from memory.md (first 50 lines - general patterns):
+- ❌ [What not to do - general pattern]
+- ✅ [What to do - general pattern]
 
-[Aktif task varsa] Task dosyasından öğrenilenler (sadece aktif task):
-- ❌ [Ne yapılmamalı - task-specific]
-- ✅ [Ne yapılmalı - task-specific]
+[If active task exists] Learned from task file (only active task):
+- ❌ [What not to do - task-specific]
+- ✅ [What to do - task-specific]
 
-Bu chat'te bu öğrenilenleri kullan."
+Use these learnings in this chat."
 ```
 
-## Phase 3: Task Tamamlandığında → Arşivle
+## Phase 3: When Task is Completed → Archive
 
-**Tetikleyiciler:**
-- Plan tamamlandığında
-- Feature tamamlandığında
-- Başarılı çözüm bulunduğunda
-- Task `status: completed` olduğunda
+**Triggers:**
+- When plan is completed
+- When feature is completed
+- When successful solution is found
+- When task `status: completed`
 
-**Ne yapılacak:**
-1. **Task-specific memory'ler:**
-   - Task dosyasında kalır (zaten orada)
-   - Task arşivlendiğinde → Memory de birlikte arşivlenir
-   - **Artık okunmaz** (task tamamlandı, hata tekrarı riski yok)
+**What to do:**
+1. **Task-specific memories:**
+   - Stay in task file (already there)
+   - When task is archived → Memory is archived together
+   - **No longer read** (task completed, no risk of error repetition)
    
-2. **General pattern çıkarımı:**
-   - Task-specific memory'lerden genel pattern çıkar
-   - Eğer genel bir pattern varsa → `memory.md`'ye ekle (kısa özet)
-   - Task-specific detaylar → Task dosyasında kalır (arşivlenir)
+2. **General pattern extraction:**
+   - Extract general pattern from task-specific memories
+   - If there's a general pattern → Add to `memory.md` (short summary)
+   - Task-specific details → Stay in task file (archived)
    
-3. **`memory.md` temizliği:**
-   - Task-specific kısımlar `memory.md`'den temizlenir
-   - Sadece general patterns kalır (max 2 sayfa)
+3. **`memory.md` cleanup:**
+   - Task-specific parts are removed from `memory.md`
+   - Only general patterns remain (max 2 pages)
 
-**Arşivleme akışı:**
+**Archiving flow:**
 ```bash
-# Task tamamlandığında
+# When task is completed
 ./scripts/auto-complete-task.sh .claude/active/feature-X.md
 
-# Memory'ler task dosyasında kalır, task ile birlikte arşivlenir
+# Memories stay in task file, archived together with task
 ./scripts/archive-completed.sh
 ```
 
-**Sonuç:**
-- ✅ Task-specific memory → Arşivlenir (artık okunmaz)
-- ✅ General pattern → `memory.md`'de kalır (yeni tasklar için)
-- ✅ Context rot önlenir (sadece aktif task'ların memory'leri okunur)
+**Result:**
+- ✅ Task-specific memory → Archived (no longer read)
+- ✅ General pattern → Stays in `memory.md` (for new tasks)
+- ✅ Context rot prevented (only active tasks' memories are read)
 
-## Kısa Komut
+## Short Command
 
-"Bunu memory.md'ye işle ve yeni chat'e geçelim."
-→ Bu komut:
-1. Hata/çözümü task-specific memory'ye yazar (aktif task varsa)
-2. General pattern varsa `memory.md`'ye ekler (kısa özet)
-3. Yeni chat'te memory'leri okur (sadece ilgili kısımlar: aktif task + genel pattern'ler)
+"Add this to memory.md and let's move to a new chat."
+→ This command:
+1. Writes error/solution to task-specific memory (if active task exists)
+2. Adds general pattern to `memory.md` if exists (short summary)
+3. Reads memories in new chat (only relevant parts: active task + general patterns)
 
-## Önemli Notlar
+## Important Notes
 
-- **Yeni chat başlarken MUTLAKA memory'yi oku** (sadece ilgili kısımlar)
-- **Aynı hatayı tekrar etme** - memory'deki anti-pattern'leri takip et
-- **Başarılı çözümleri kaydet** - gelecekte kullanmak için
-- **Context rot'u önle** - sadece aktif task'ların memory'lerini oku
-- **Task-specific → Task ile arşivle**, general → `memory.md`'de tut
-- **`memory.md` max 2 sayfa** - büyürse eski pattern'leri arşivle
-- **Arşivlenmiş task'ların memory'leri okunmaz** - task tamamlandı, gerek yok
+- **ALWAYS read memory when starting new chat** (only relevant parts)
+- **Don't repeat the same error** - follow anti-patterns in memory
+- **Save successful solutions** - for future use
+- **Prevent context rot** - only read active tasks' memories
+- **Task-specific → Archive with task**, general → Keep in `memory.md`
+- **`memory.md` max 2 pages** - archive old patterns if it grows
+- **Archived tasks' memories are not read** - task completed, not needed
 
-## Context Rot Önleme
+## Context Rot Prevention
 
-**Problem:** `memory.md` büyüdükçe her chat'te okunması context'i doldurur.
+**Problem:** As `memory.md` grows, reading it in every chat fills the context.
 
-**Çözüm:**
-1. Task-specific memory → Task dosyasında (task ile birlikte arşivlenir, artık okunmaz)
-2. General patterns → `memory.md`'de (kısa özet, max 2 sayfa)
-3. Yeni chat'te sadece ilgili kısımlar okunur:
-   - Aktif task'ın memory'leri (sadece aktif task için)
-   - `memory.md`'nin ilk 50 satırı (general patterns - yeni tasklar için)
-4. Arşivlenmiş task'ların memory'leri okunmaz (task tamamlandı, hata tekrarı riski yok)
+**Solution:**
+1. Task-specific memory → In task file (archived with task, no longer read)
+2. General patterns → In `memory.md` (short summary, max 2 pages)
+3. Only relevant parts are read in new chat:
+   - Active task's memories (only for active task)
+   - First 50 lines of `memory.md` (general patterns - for new tasks)
+4. Archived tasks' memories are not read (task completed, no risk of error repetition)
 
-## Mantık Özeti
+## Logic Summary
 
-- ✅ **Aktif task** → Hata tekrarı riski var → Task-specific memory'den bak
-- ✅ **Yeni task** → Genel pattern'lerden öğren → `memory.md`'den bak
-- ❌ **Tamamlanmış task** → Hata tekrarı yok → Memory okunmaz (gerek yok)
+- ✅ **Active task** → Risk of error repetition → Check task-specific memory
+- ✅ **New task** → Learn from general patterns → Check `memory.md`
+- ❌ **Completed task** → No error repetition → Memory not read (not needed)

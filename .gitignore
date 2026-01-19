@@ -1,7 +1,7 @@
 # Test dosyaları
-scripts/e2e-test.sh
 scripts/test-runner.sh
 E2E_TEST_RESULTS.log
+# Note: e2e-test.sh is kept as it's part of the test infrastructure
 TEST_RESULTS.md
 TEST_PLAN.md
 plans/mdd_test_planı_*.plan.md

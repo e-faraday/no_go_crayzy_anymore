@@ -1,0 +1,156 @@
+# Memory Management - Anti-Pattern Tracking
+
+## Purpose
+Remember previous attempts and solutions to prevent debug errors from repeating. **Only for active/remaining tasks** to prevent error repetition. Categorize and archive memories to prevent context rot.
+
+## Memory Structure
+
+```
+memory.md                    → General/common patterns (short summaries, max 2 pages)
+.claude/active/feature-X.md  → Task-specific memory (only for active tasks)
+.claude/completed/.../        → Archived when task is completed (memory not read)
+```
+
+**Important:** Archived tasks' memories are not read because the task is completed, there's no risk of error repetition.
+
+## Phase 1: When Error Occurs → Write to Memory
+
+**Triggers:**
+- Error during task execution
+- Situation requiring debugging
+- Situation requiring direction change (pivot)
+- When solution is found
+
+**Where to write:**
+- **Task-specific error (for active task)** → To active task file (`.claude/active/feature-X.md`)
+- **General pattern (applicable to all projects)** → To `memory.md` (summary only, 1-2 sentences)
+
+**Format (Task-specific - For active task):**
+```markdown
+## Memory (Task-Specific)
+
+### [Error Title] - [Date]
+**Error:** [What was tried, what didn't work]
+**Solution:** [What worked, how it was solved]
+**Important Note:** [What should not be done to avoid repetition]
+```
+
+**Format (General pattern - For new tasks):**
+```markdown
+## Learned Lessons (General)
+
+### Pattern: [Short title]
+**What not to do:** [1 sentence]
+**What to do:** [1 sentence]
+**Usage:** [In which situations]
+```
+
+## Phase 2: When Starting New Chat → Read Memory
+
+**Triggers:**
+- When new Cursor chat is started
+- When new folder is opened
+- When new chat is opened in same folder
+- New session for incomplete task
+
+**What to read (Only for active/remaining tasks):**
+1. **If active task exists:**
+   - Read "Memory (Task-Specific)" section in task file
+   - Only memories of the relevant active task
+   
+2. **General patterns (for new tasks):**
+   - Read first 50 lines of `memory.md` file
+   - Only general patterns (not task-specific)
+
+**What not to read:**
+- ❌ Memories of archived tasks (task completed, not needed)
+- ❌ Old/irrelevant errors
+- ❌ Entire `memory.md` (only first 50 lines)
+- ❌ Memories of completed tasks
+
+**Format:**
+```
+[When starting new chat]
+"Learned from memory.md (first 50 lines - general patterns):
+- ❌ [What not to do - general pattern]
+- ✅ [What to do - general pattern]
+
+[If active task exists] Learned from task file (only active task):
+- ❌ [What not to do - task-specific]
+- ✅ [What to do - task-specific]
+
+Use these learnings in this chat."
+```
+
+## Phase 3: When Task is Completed → Archive
+
+**Triggers:**
+- When plan is completed
+- When feature is completed
+- When successful solution is found
+- When task `status: completed`
+
+**What to do:**
+1. **Task-specific memories:**
+   - Stay in task file (already there)
+   - When task is archived → Memory is archived together
+   - **No longer read** (task completed, no risk of error repetition)
+   
+2. **General pattern extraction:**
+   - Extract general pattern from task-specific memories
+   - If there's a general pattern → Add to `memory.md` (short summary)
+   - Task-specific details → Stay in task file (archived)
+   
+3. **`memory.md` cleanup:**
+   - Task-specific parts are removed from `memory.md`
+   - Only general patterns remain (max 2 pages)
+
+**Archiving flow:**
+```bash
+# When task is completed
+./scripts/auto-complete-task.sh .claude/active/feature-X.md
+
+# Memories stay in task file, archived together with task
+./scripts/archive-completed.sh
+```
+
+**Result:**
+- ✅ Task-specific memory → Archived (no longer read)
+- ✅ General pattern → Stays in `memory.md` (for new tasks)
+- ✅ Context rot prevented (only active tasks' memories are read)
+
+## Short Command
+
+"Add this to memory.md and let's move to a new chat."
+→ This command:
+1. Writes error/solution to task-specific memory (if active task exists)
+2. Adds general pattern to `memory.md` if exists (short summary)
+3. Reads memories in new chat (only relevant parts: active task + general patterns)
+
+## Important Notes
+
+- **ALWAYS read memory when starting new chat** (only relevant parts)
+- **Don't repeat the same error** - follow anti-patterns in memory
+- **Save successful solutions** - for future use
+- **Prevent context rot** - only read active tasks' memories
+- **Task-specific → Archive with task**, general → Keep in `memory.md`
+- **`memory.md` max 2 pages** - archive old patterns if it grows
+- **Archived tasks' memories are not read** - task completed, not needed
+
+## Context Rot Prevention
+
+**Problem:** As `memory.md` grows, reading it in every chat fills the context.
+
+**Solution:**
+1. Task-specific memory → In task file (archived with task, no longer read)
+2. General patterns → In `memory.md` (short summary, max 2 pages)
+3. Only relevant parts are read in new chat:
+   - Active task's memories (only for active task)
+   - First 50 lines of `memory.md` (general patterns - for new tasks)
+4. Archived tasks' memories are not read (task completed, no risk of error repetition)
+
+## Logic Summary
+
+- ✅ **Active task** → Risk of error repetition → Check task-specific memory
+- ✅ **New task** → Learn from general patterns → Check `memory.md`
+- ❌ **Completed task** → No error repetition → Memory not read (not needed)

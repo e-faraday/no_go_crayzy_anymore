@@ -98,6 +98,41 @@ Help me implement Plan 2: Implementation
 
 ---
 
+## 🤔 Cursor Chat vs Claude Code
+
+### 🖥️ Cursor Chat (Designed for This Project) ✅
+
+**Usage:**
+```
+Cmd+L → @file → prompt → Enter
+For new plan: Cmd+L again (fresh chat)
+```
+
+**Advantages:**
+- ✅ Visual editor
+- ✅ Tab completion
+- ✅ @Codebase support
+
+**Disadvantage:**
+- ⚠️ Manual fresh chat (no automatic subagent)
+
+### 💻 Claude Code Terminal
+
+**Usage:**
+```bash
+claude
+> @file prompt
+```
+
+**Advantages:**
+- ✅ Automatic subagent
+- ✅ Terminal automation
+
+**Disadvantage:**
+- ⚠️ No visual editor
+
+---
+
 ## 🔧 How It Works
 
 ### 📁 Core Files (What Persists)

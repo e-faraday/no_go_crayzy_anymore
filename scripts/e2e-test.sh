@@ -6,7 +6,8 @@ set -e
 
 # Change to script directory at start (fix for wrong directory issue)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR/.." || exit 1
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT" || exit 1
 
 # Colors
 GREEN='\033[0;32m'
@@ -21,8 +22,8 @@ FAILED=0
 SKIPPED=0
 TOTAL=0
 
-# Log file
-LOG_FILE="E2E_TEST_RESULTS.log"
+# Log file (always in project root)
+LOG_FILE="$PROJECT_ROOT/E2E_TEST_RESULTS.log"
 echo "=== E2E Test Results ===" > "$LOG_FILE"
 echo "Started: $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
 echo "" >> "$LOG_FILE"
@@ -69,7 +70,10 @@ cleanup() {
     find .claude/active -name "feature-e2e-test-*.md" -type f -delete 2>/dev/null || true
     find .claude/active -name "bug-e2e-test-*.md" -type f -delete 2>/dev/null || true
     find .claude/active -name "refactor-e2e-test-*.md" -type f -delete 2>/dev/null || true
+    find .claude/active -name "feature-e2e-workflow-test*.md" -type f -delete 2>/dev/null || true
+    find .claude/active -name "feature-feature-*.md" -type f -delete 2>/dev/null || true
     # Don't remove completed files - they're part of the test
+    # Note: Temporary test git repos are cleaned up immediately after each test
 }
 
 trap cleanup EXIT
@@ -382,6 +386,1108 @@ if [ -f "$SPECIAL_FILE" ]; then
     rm -f "$SPECIAL_FILE"
 else
     log_fail "Special characters handling" "File not created: $SPECIAL_FILE"
+fi
+
+# ============================================================================
+# Category A: Git Hooks Integration Tests
+# ============================================================================
+
+step_header "Category A: Git Hooks Integration"
+
+# Helper: Setup isolated test git repo
+setup_test_git_repo() {
+    TEST_REPO_DIR=$(mktemp -d)
+    cd "$TEST_REPO_DIR" || exit 1
+    git init > /dev/null 2>&1
+    git config user.name "Test User" > /dev/null 2>&1
+    git config user.email "test@example.com" > /dev/null 2>&1
+    mkdir -p .claude/active scripts .github/workflows
+    echo "$TEST_REPO_DIR"
+}
+
+# Helper: Cleanup test git repo
+cleanup_test_git_repo() {
+    if [ -n "$TEST_REPO_DIR" ] && [ -d "$TEST_REPO_DIR" ]; then
+        cd "$PROJECT_ROOT" 2>/dev/null || true
+        rm -rf "$TEST_REPO_DIR" 2>/dev/null || true
+        TEST_REPO_DIR=""
+    fi
+    # Always return to project root
+    cd "$PROJECT_ROOT" 2>/dev/null || true
+}
+
+# Test A1: Pre-commit hook installation via script
+step_header "A1: Pre-commit hook installation"
+if [ -f "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    cp "$PROJECT_ROOT/scripts/validate-state.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/install-pre-commit-hook.sh"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-state.sh" 2>/dev/null || true
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    echo -e "y\ny" | ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1
+    
+    if [ -f ".git/hooks/pre-commit" ] && [ -x ".git/hooks/pre-commit" ]; then
+        log_pass "A1: Pre-commit hook installation"
+    else
+        log_fail "A1: Pre-commit hook installation" "Hook not created or not executable"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "A1: Pre-commit hook installation (script not found)"
+fi
+
+# Test A2: Commit-msg hook installation via script
+step_header "A2: Commit-msg hook installation"
+if [ -f "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/install-pre-commit-hook.sh"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh" 2>/dev/null || true
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    echo -e "y\ny" | ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1
+    
+    if [ -f ".git/hooks/commit-msg" ] && [ -x ".git/hooks/commit-msg" ]; then
+        log_pass "A2: Commit-msg hook installation"
+    else
+        log_fail "A2: Commit-msg hook installation" "Hook not created or not executable"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "A2: Commit-msg hook installation (script not found)"
+fi
+
+# Test A3: Pre-commit hook blocks commit without state update
+step_header "A3: Pre-commit hook blocks invalid commit"
+if [ -f "$PROJECT_ROOT/scripts/validate-state.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-state.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-state.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create feature file (Active Mode)
+    cat > .claude/active/feature-test.md << 'EOF'
+---
+type: feature
+status: in-progress
+---
+# Test Feature
+EOF
+    # Create pre-commit hook
+    cat > .git/hooks/pre-commit << 'HOOKEOF'
+#!/bin/bash
+./scripts/validate-state.sh --strict
+EXIT_CODE=$?
+if [ $EXIT_CODE -eq 2 ]; then
+    echo "❌ COMMIT BLOCKED: State not updated"
+    exit 1
+fi
+exit 0
+HOOKEOF
+    chmod +x .git/hooks/pre-commit
+    
+    # Make initial commit
+    git add .claude/active/feature-test.md
+    git commit -m "feat: initial" > /dev/null 2>&1
+    
+    # Make code change without state update
+    mkdir -p src
+    echo "code" > src/app.ts
+    git add src/app.ts
+    
+    if ! git commit -m "feat: change" > /dev/null 2>&1; then
+        log_pass "A3: Pre-commit hook blocks invalid commit"
+    else
+        log_fail "A3: Pre-commit hook blocks invalid commit" "Hook did not block commit"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "A3: Pre-commit hook blocks invalid commit (validate-state.sh not found)"
+fi
+
+# Test A4: Pre-commit hook allows commit with state update
+step_header "A4: Pre-commit hook allows valid commit"
+if [ -f "$PROJECT_ROOT/scripts/validate-state.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-state.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-state.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create feature file
+    cat > .claude/active/feature-test.md << 'EOF'
+---
+type: feature
+status: in-progress
+---
+# Test Feature
+EOF
+    # Create pre-commit hook
+    cat > .git/hooks/pre-commit << 'HOOKEOF'
+#!/bin/bash
+./scripts/validate-state.sh --strict
+EXIT_CODE=$?
+if [ $EXIT_CODE -eq 2 ]; then
+    echo "❌ COMMIT BLOCKED: State not updated"
+    exit 1
+fi
+exit 0
+HOOKEOF
+    chmod +x .git/hooks/pre-commit
+    
+    # Make initial commit
+    git add .claude/active/feature-test.md
+    git commit -m "feat: initial" > /dev/null 2>&1
+    
+    # Make code change with state update
+    mkdir -p src
+    echo "code" > src/app.ts
+    echo "" >> .claude/active/feature-test.md
+    echo "**$(date +%Y-%m-%d) 12:00** - Update" >> .claude/active/feature-test.md
+    git add src/app.ts .claude/active/feature-test.md
+    
+    if git commit -m "feat: change with state" > /dev/null 2>&1; then
+        log_pass "A4: Pre-commit hook allows valid commit"
+    else
+        log_fail "A4: Pre-commit hook allows valid commit" "Hook blocked valid commit"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "A4: Pre-commit hook allows valid commit (validate-state.sh not found)"
+fi
+
+# Test A5: Commit-msg hook blocks invalid commit message
+step_header "A5: Commit-msg hook blocks invalid message"
+if [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create commit-msg hook
+    cat > .git/hooks/commit-msg << 'HOOKEOF'
+#!/bin/bash
+./scripts/validate-commit-message.sh "$1"
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    exit 1
+fi
+exit 0
+HOOKEOF
+    chmod +x .git/hooks/commit-msg
+    
+    echo "test" > test.txt
+    git add test.txt
+    
+    if ! git commit -m "invalid message" > /dev/null 2>&1; then
+        log_pass "A5: Commit-msg hook blocks invalid message"
+    else
+        log_fail "A5: Commit-msg hook blocks invalid message" "Hook did not block invalid message"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "A5: Commit-msg hook blocks invalid message (validate-commit-message.sh not found)"
+fi
+
+# Test A6: Commit-msg hook allows valid Conventional Commits format
+step_header "A6: Commit-msg hook allows valid format"
+if [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create commit-msg hook
+    cat > .git/hooks/commit-msg << 'HOOKEOF'
+#!/bin/bash
+./scripts/validate-commit-message.sh "$1"
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    exit 1
+fi
+exit 0
+HOOKEOF
+    chmod +x .git/hooks/commit-msg
+    
+    echo "test" > test.txt
+    git add test.txt
+    
+    if git commit -m "feat(test): add test file" > /dev/null 2>&1; then
+        log_pass "A6: Commit-msg hook allows valid format"
+    else
+        log_fail "A6: Commit-msg hook allows valid format" "Hook blocked valid message"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "A6: Commit-msg hook allows valid format (validate-commit-message.sh not found)"
+fi
+
+# Test A7: Both hooks work together correctly
+step_header "A7: Both hooks work together"
+if [ -f "$PROJECT_ROOT/scripts/validate-state.sh" ] && [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-state.sh" "$TEST_REPO_DIR/scripts/"
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-state.sh"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create feature file
+    cat > .claude/active/feature-test.md << 'EOF'
+---
+type: feature
+status: in-progress
+---
+# Test Feature
+EOF
+    # Create both hooks
+    cat > .git/hooks/pre-commit << 'HOOKEOF'
+#!/bin/bash
+./scripts/validate-state.sh --strict
+EXIT_CODE=$?
+if [ $EXIT_CODE -eq 2 ]; then
+    echo "❌ COMMIT BLOCKED: State not updated"
+    exit 1
+fi
+exit 0
+HOOKEOF
+    cat > .git/hooks/commit-msg << 'HOOKEOF'
+#!/bin/bash
+./scripts/validate-commit-message.sh "$1"
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    exit 1
+fi
+exit 0
+HOOKEOF
+    chmod +x .git/hooks/pre-commit
+    chmod +x .git/hooks/commit-msg
+    
+    # Make initial commit
+    git add .claude/active/feature-test.md
+    git commit -m "feat: initial" > /dev/null 2>&1
+    
+    # Make change with state update and valid message
+    mkdir -p src
+    echo "code" > src/app.ts
+    echo "" >> .claude/active/feature-test.md
+    echo "**$(date +%Y-%m-%d) 12:00** - Update" >> .claude/active/feature-test.md
+    git add src/app.ts .claude/active/feature-test.md
+    
+    if git commit -m "feat(test): add feature" > /dev/null 2>&1; then
+        log_pass "A7: Both hooks work together"
+    else
+        log_fail "A7: Both hooks work together" "Hooks blocked valid commit"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "A7: Both hooks work together (scripts not found)"
+fi
+
+# Test A8: Hooks skip in Bootstrap Mode
+step_header "A8: Hooks skip in Bootstrap Mode"
+if [ -f "$PROJECT_ROOT/scripts/validate-state.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-state.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-state.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create pre-commit hook (no active features = Bootstrap Mode)
+    cat > .git/hooks/pre-commit << 'HOOKEOF'
+#!/bin/bash
+./scripts/validate-state.sh --strict
+EXIT_CODE=$?
+if [ $EXIT_CODE -eq 2 ]; then
+    echo "❌ COMMIT BLOCKED: State not updated"
+    exit 1
+fi
+exit 0
+HOOKEOF
+    chmod +x .git/hooks/pre-commit
+    
+    # Make commit in Bootstrap Mode (no active features)
+    echo "code" > test.txt
+    git add test.txt
+    
+    if git commit -m "feat: bootstrap commit" > /dev/null 2>&1; then
+        log_pass "A8: Hooks skip in Bootstrap Mode"
+    else
+        log_fail "A8: Hooks skip in Bootstrap Mode" "Hook blocked Bootstrap Mode commit"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "A8: Hooks skip in Bootstrap Mode (validate-state.sh not found)"
+fi
+
+# ============================================================================
+# Category B: Environment Parity Tests
+# ============================================================================
+
+step_header "Category B: Environment Parity"
+
+# Test B1: verify-env-parity.sh detects matching configs
+step_header "B1: Environment parity detects matching configs"
+if [ -f "$PROJECT_ROOT/scripts/verify-env-parity.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/verify-env-parity.sh" "$TEST_REPO_DIR/scripts/"
+    cp "$PROJECT_ROOT/scripts/test-active-mode.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/verify-env-parity.sh"
+    chmod +x "$TEST_REPO_DIR/scripts/test-active-mode.sh" 2>/dev/null || true
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create matching CI workflow and test script
+    mkdir -p .github/workflows
+    cat > .github/workflows/test.yml << 'EOF'
+name: Test
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./scripts/test-active-mode.sh --category detection
+EOF
+    cat > scripts/test-active-mode.sh << 'EOF'
+#!/bin/bash
+# Test script with detection category
+test_category_1_detection() {
+    echo "test"
+}
+EOF
+    chmod +x scripts/test-active-mode.sh
+    
+    if ./scripts/verify-env-parity.sh > /dev/null 2>&1; then
+        log_pass "B1: Environment parity detects matching configs"
+    else
+        log_fail "B1: Environment parity detects matching configs" "Script failed on matching configs"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "B1: Environment parity detects matching configs (script not found)"
+fi
+
+# Test B2: verify-env-parity.sh detects mismatches
+step_header "B2: Environment parity detects mismatches"
+if [ -f "$PROJECT_ROOT/scripts/verify-env-parity.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/verify-env-parity.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/verify-env-parity.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create mismatched CI workflow and test script
+    mkdir -p .github/workflows
+    cat > .github/workflows/test.yml << 'EOF'
+name: Test
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./scripts/test-active-mode.sh --category enforcement
+EOF
+    cat > scripts/test-active-mode.sh << 'EOF'
+#!/bin/bash
+# Test script without enforcement category
+test_category_1_detection() {
+    echo "test"
+}
+EOF
+    chmod +x scripts/test-active-mode.sh
+    
+    if ! ./scripts/verify-env-parity.sh > /dev/null 2>&1; then
+        log_pass "B2: Environment parity detects mismatches"
+    else
+        log_fail "B2: Environment parity detects mismatches" "Script did not detect mismatch"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "B2: Environment parity detects mismatches (script not found)"
+fi
+
+# Test B3: Script handles missing CI workflows gracefully
+step_header "B3: Environment parity handles missing CI workflows"
+if [ -f "$PROJECT_ROOT/scripts/verify-env-parity.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/verify-env-parity.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/verify-env-parity.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Remove workflows directory
+    rm -rf .github/workflows
+    
+    if ./scripts/verify-env-parity.sh > /dev/null 2>&1; then
+        log_pass "B3: Environment parity handles missing CI workflows"
+    else
+        log_fail "B3: Environment parity handles missing CI workflows" "Script failed on missing workflows"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "B3: Environment parity handles missing CI workflows (script not found)"
+fi
+
+# Test B4: Script handles non-git directory gracefully
+step_header "B4: Environment parity handles non-git directory"
+if [ -f "$PROJECT_ROOT/scripts/verify-env-parity.sh" ]; then
+    TEST_REPO_DIR=$(mktemp -d)
+    cd "$TEST_REPO_DIR" || exit 1
+    cp "$PROJECT_ROOT/scripts/verify-env-parity.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || mkdir -p scripts
+    cp "$PROJECT_ROOT/scripts/verify-env-parity.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/verify-env-parity.sh" 2>/dev/null || true
+    
+    # No .git directory
+    if ./scripts/verify-env-parity.sh > /dev/null 2>&1; then
+        log_pass "B4: Environment parity handles non-git directory"
+    else
+        log_fail "B4: Environment parity handles non-git directory" "Script failed on non-git directory"
+    fi
+    rm -rf "$TEST_REPO_DIR"
+else
+    log_skip "B4: Environment parity handles non-git directory (script not found)"
+fi
+
+# ============================================================================
+# Category C: Conventional Commits Tests
+# ============================================================================
+
+step_header "Category C: Conventional Commits"
+
+# Test C1: validate-commit-message.sh accepts valid formats
+step_header "C1: Conventional Commits accepts valid formats"
+if [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    mkdir -p .git
+    echo "feat(test): add feature" > .git/COMMIT_EDITMSG
+    
+    if ./scripts/validate-commit-message.sh .git/COMMIT_EDITMSG > /dev/null 2>&1; then
+        log_pass "C1: Conventional Commits accepts valid formats"
+    else
+        log_fail "C1: Conventional Commits accepts valid formats" "Script rejected valid format"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "C1: Conventional Commits accepts valid formats (script not found)"
+fi
+
+# Test C2: validate-commit-message.sh rejects invalid formats
+step_header "C2: Conventional Commits rejects invalid formats"
+if [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    mkdir -p .git
+    echo "invalid message" > .git/COMMIT_EDITMSG
+    
+    if ! ./scripts/validate-commit-message.sh .git/COMMIT_EDITMSG > /dev/null 2>&1; then
+        log_pass "C2: Conventional Commits rejects invalid formats"
+    else
+        log_fail "C2: Conventional Commits rejects invalid formats" "Script accepted invalid format"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "C2: Conventional Commits rejects invalid formats (script not found)"
+fi
+
+# Test C3: All valid types work
+step_header "C3: Conventional Commits all valid types work"
+if [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    mkdir -p .git
+    
+    VALID_TYPES=("feat" "fix" "docs" "style" "refactor" "test" "chore" "perf" "ci" "build")
+    ALL_PASSED=true
+    
+    for type in "${VALID_TYPES[@]}"; do
+        echo "${type}(scope): description" > .git/COMMIT_EDITMSG
+        if ! ./scripts/validate-commit-message.sh .git/COMMIT_EDITMSG > /dev/null 2>&1; then
+            ALL_PASSED=false
+            break
+        fi
+    done
+    
+    if [ "$ALL_PASSED" = true ]; then
+        log_pass "C3: Conventional Commits all valid types work"
+    else
+        log_fail "C3: Conventional Commits all valid types work" "Some types failed"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "C3: Conventional Commits all valid types work (script not found)"
+fi
+
+# Test C4: Scope handling works correctly
+step_header "C4: Conventional Commits scope handling"
+if [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    mkdir -p .git
+    
+    # Test with scope
+    echo "feat(active-mode): add feature" > .git/COMMIT_EDITMSG
+    WITH_SCOPE=$(./scripts/validate-commit-message.sh .git/COMMIT_EDITMSG > /dev/null 2>&1 && echo "pass" || echo "fail")
+    
+    # Test without scope
+    echo "feat: add feature" > .git/COMMIT_EDITMSG
+    WITHOUT_SCOPE=$(./scripts/validate-commit-message.sh .git/COMMIT_EDITMSG > /dev/null 2>&1 && echo "pass" || echo "fail")
+    
+    if [ "$WITH_SCOPE" = "pass" ] && [ "$WITHOUT_SCOPE" = "pass" ]; then
+        log_pass "C4: Conventional Commits scope handling"
+    else
+        log_fail "C4: Conventional Commits scope handling" "Scope handling failed"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "C4: Conventional Commits scope handling (script not found)"
+fi
+
+# Test C5: Merge commits are skipped
+step_header "C5: Conventional Commits merge commits skipped"
+if [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    mkdir -p .git
+    echo "Merge branch 'feature' into main" > .git/COMMIT_EDITMSG
+    
+    if ./scripts/validate-commit-message.sh .git/COMMIT_EDITMSG > /dev/null 2>&1; then
+        log_pass "C5: Conventional Commits merge commits skipped"
+    else
+        log_fail "C5: Conventional Commits merge commits skipped" "Merge commit not skipped"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "C5: Conventional Commits merge commits skipped (script not found)"
+fi
+
+# Test C6: Revert commits are skipped
+step_header "C6: Conventional Commits revert commits skipped"
+if [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    mkdir -p .git
+    echo "Revert \"feat: add feature\"" > .git/COMMIT_EDITMSG
+    
+    if ./scripts/validate-commit-message.sh .git/COMMIT_EDITMSG > /dev/null 2>&1; then
+        log_pass "C6: Conventional Commits revert commits skipped"
+    else
+        log_fail "C6: Conventional Commits revert commits skipped" "Revert commit not skipped"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "C6: Conventional Commits revert commits skipped (script not found)"
+fi
+
+# ============================================================================
+# Category D: Affected Tests Detection Tests
+# ============================================================================
+
+step_header "Category D: Affected Tests Detection"
+
+# Test D1: detect-affected-tests.sh detects script changes
+step_header "D1: Affected tests detects script changes"
+if [ -f "$PROJECT_ROOT/scripts/detect-affected-tests.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/detect-affected-tests.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/detect-affected-tests.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create initial commit
+    mkdir -p scripts
+    echo "test" > scripts/validate-state.sh
+    git add scripts/validate-state.sh
+    git commit -m "feat: initial" > /dev/null 2>&1
+    
+    # Modify script
+    echo "modified" >> scripts/validate-state.sh
+    git add scripts/validate-state.sh
+    
+    AFFECTED=$(./scripts/detect-affected-tests.sh 2>/dev/null | tail -1)
+    if echo "$AFFECTED" | grep -qE "(validation|autosync|precommit)"; then
+        log_pass "D1: Affected tests detects script changes"
+    else
+        log_fail "D1: Affected tests detects script changes" "Script changes not detected"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "D1: Affected tests detects script changes (script not found)"
+fi
+
+# Test D2: detect-affected-tests.sh detects feature file changes
+step_header "D2: Affected tests detects feature file changes"
+if [ -f "$PROJECT_ROOT/scripts/detect-affected-tests.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/detect-affected-tests.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/detect-affected-tests.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create initial commit
+    mkdir -p .claude/active
+    echo "test" > .claude/active/feature-test.md
+    git add .claude/active/feature-test.md
+    git commit -m "feat: initial" > /dev/null 2>&1
+    
+    # Modify feature file
+    echo "modified" >> .claude/active/feature-test.md
+    git add .claude/active/feature-test.md
+    
+    AFFECTED=$(./scripts/detect-affected-tests.sh 2>/dev/null | tail -1)
+    if echo "$AFFECTED" | grep -qE "(detection|enforcement)"; then
+        log_pass "D2: Affected tests detects feature file changes"
+    else
+        log_fail "D2: Affected tests detects feature file changes" "Feature file changes not detected"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "D2: Affected tests detects feature file changes (script not found)"
+fi
+
+# Test D3: detect-affected-tests.sh detects CI config changes
+step_header "D3: Affected tests detects CI config changes"
+if [ -f "$PROJECT_ROOT/scripts/detect-affected-tests.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/detect-affected-tests.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/detect-affected-tests.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create initial commit
+    mkdir -p .github/workflows
+    echo "test" > .github/workflows/test.yml
+    git add .github/workflows/test.yml
+    git commit -m "feat: initial" > /dev/null 2>&1
+    
+    # Modify CI config
+    echo "modified" >> .github/workflows/test.yml
+    git add .github/workflows/test.yml
+    
+    AFFECTED=$(./scripts/detect-affected-tests.sh 2>/dev/null | tail -1)
+    if echo "$AFFECTED" | grep -q "all"; then
+        log_pass "D3: Affected tests detects CI config changes"
+    else
+        log_fail "D3: Affected tests detects CI config changes" "CI config changes not detected as 'all'"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "D3: Affected tests detects CI config changes (script not found)"
+fi
+
+# Test D4: Script returns "all" for major changes
+step_header "D4: Affected tests returns 'all' for major changes"
+if [ -f "$PROJECT_ROOT/scripts/detect-affected-tests.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/detect-affected-tests.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/detect-affected-tests.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create initial commit
+    mkdir -p scripts
+    echo "test" > scripts/test-active-mode.sh
+    git add scripts/test-active-mode.sh
+    git commit -m "feat: initial" > /dev/null 2>&1
+    
+    # Modify test script (major change)
+    echo "modified" >> scripts/test-active-mode.sh
+    git add scripts/test-active-mode.sh
+    
+    AFFECTED=$(./scripts/detect-affected-tests.sh 2>/dev/null | tail -1)
+    if echo "$AFFECTED" | grep -q "all"; then
+        log_pass "D4: Affected tests returns 'all' for major changes"
+    else
+        log_fail "D4: Affected tests returns 'all' for major changes" "Major changes not detected as 'all'"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "D4: Affected tests returns 'all' for major changes (script not found)"
+fi
+
+# Test D5: Script handles non-git directory
+step_header "D5: Affected tests handles non-git directory"
+if [ -f "$PROJECT_ROOT/scripts/detect-affected-tests.sh" ]; then
+    TEST_REPO_DIR=$(mktemp -d)
+    cd "$TEST_REPO_DIR" || exit 1
+    cp "$PROJECT_ROOT/scripts/detect-affected-tests.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || mkdir -p scripts
+    cp "$PROJECT_ROOT/scripts/detect-affected-tests.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/detect-affected-tests.sh" 2>/dev/null || true
+    
+    # No .git directory
+    OUTPUT=$(./scripts/detect-affected-tests.sh 2>/dev/null | tail -1)
+    if [ "$OUTPUT" = "all" ]; then
+        log_pass "D5: Affected tests handles non-git directory"
+    else
+        log_fail "D5: Affected tests handles non-git directory" "Script failed on non-git directory"
+    fi
+    rm -rf "$TEST_REPO_DIR"
+else
+    log_skip "D5: Affected tests handles non-git directory (script not found)"
+fi
+
+# ============================================================================
+# Category E: Full Workflow with Gold Standard Tests
+# ============================================================================
+
+step_header "Category E: Full Workflow with Gold Standard"
+
+# Test E1: Complete workflow with hooks
+step_header "E1: Complete workflow with hooks"
+if [ -f "$PROJECT_ROOT/scripts/new-task.sh" ] && [ -f "$PROJECT_ROOT/scripts/validate-state.sh" ] && [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/"*.sh "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/"*.sh 2>/dev/null || true
+    # Copy templates directory
+    mkdir -p "$TEST_REPO_DIR/.claude/templates"
+    cp -r "$PROJECT_ROOT/.claude/templates/"* "$TEST_REPO_DIR/.claude/templates/" 2>/dev/null || true
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    export NO_EDITOR=1
+    
+    # Install hooks
+    echo -e "y\ny" | ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1 || true
+    
+    # Create feature
+    yes "n" 2>/dev/null | ./scripts/new-task.sh feature "E2E Workflow Test" > /dev/null 2>&1 || true
+    FEATURE_FILE=$(find .claude/active -name "feature-*.md" | head -1)
+    
+    if [ -f "$FEATURE_FILE" ]; then
+        # Start task
+        ./scripts/start-task.sh "$FEATURE_FILE" "Started" > /dev/null 2>&1 || true
+        
+        # Make code change with state update
+        mkdir -p src
+        echo "code" > src/app.ts
+        echo "" >> "$FEATURE_FILE"
+        echo "**$(date +%Y-%m-%d) 12:00** - Update" >> "$FEATURE_FILE"
+        git add src/app.ts "$FEATURE_FILE"
+        
+        # Commit with valid message
+        if git commit -m "feat(test): add feature" > /dev/null 2>&1; then
+            log_pass "E1: Complete workflow with hooks"
+        else
+            log_fail "E1: Complete workflow with hooks" "Workflow failed"
+        fi
+    else
+        log_fail "E1: Complete workflow with hooks" "Feature file not created"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "E1: Complete workflow with hooks (scripts not found)"
+fi
+
+# Test E2: Workflow with Conventional Commits enforcement
+step_header "E2: Workflow with Conventional Commits enforcement"
+if [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/validate-commit-message.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create commit-msg hook
+    cat > .git/hooks/commit-msg << 'HOOKEOF'
+#!/bin/bash
+./scripts/validate-commit-message.sh "$1"
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    exit 1
+fi
+exit 0
+HOOKEOF
+    chmod +x .git/hooks/commit-msg
+    
+    echo "test" > test.txt
+    git add test.txt
+    
+    # Try invalid message (should fail)
+    if ! git commit -m "invalid" > /dev/null 2>&1; then
+        # Try valid message (should pass)
+        if git commit -m "feat(test): add test" > /dev/null 2>&1; then
+            log_pass "E2: Workflow with Conventional Commits enforcement"
+        else
+            log_fail "E2: Workflow with Conventional Commits enforcement" "Valid message failed"
+        fi
+    else
+        log_fail "E2: Workflow with Conventional Commits enforcement" "Invalid message passed"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "E2: Workflow with Conventional Commits enforcement (script not found)"
+fi
+
+# Test E3: Workflow with environment parity check
+step_header "E3: Workflow with environment parity check"
+if [ -f "$PROJECT_ROOT/scripts/verify-env-parity.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/verify-env-parity.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/verify-env-parity.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create matching configs
+    mkdir -p .github/workflows
+    cat > .github/workflows/test.yml << 'EOF'
+name: Test
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./scripts/test-active-mode.sh --category detection
+EOF
+    cat > scripts/test-active-mode.sh << 'EOF'
+#!/bin/bash
+test_category_1_detection() {
+    echo "test"
+}
+EOF
+    chmod +x scripts/test-active-mode.sh
+    
+    if ./scripts/verify-env-parity.sh > /dev/null 2>&1; then
+        log_pass "E3: Workflow with environment parity check"
+    else
+        log_fail "E3: Workflow with environment parity check" "Parity check failed"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "E3: Workflow with environment parity check (script not found)"
+fi
+
+# Test E4: Workflow with affected tests detection
+step_header "E4: Workflow with affected tests detection"
+if [ -f "$PROJECT_ROOT/scripts/detect-affected-tests.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/detect-affected-tests.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/detect-affected-tests.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create initial commit
+    mkdir -p scripts
+    echo "test" > scripts/validate-state.sh
+    git add scripts/validate-state.sh
+    git commit -m "feat: initial" > /dev/null 2>&1
+    
+    # Modify script
+    echo "modified" >> scripts/validate-state.sh
+    git add scripts/validate-state.sh
+    
+    AFFECTED=$(./scripts/detect-affected-tests.sh 2>/dev/null | tail -1)
+    if [ -n "$AFFECTED" ]; then
+        log_pass "E4: Workflow with affected tests detection"
+    else
+        log_fail "E4: Workflow with affected tests detection" "Detection failed"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "E4: Workflow with affected tests detection (script not found)"
+fi
+
+# Test E5: Multiple features workflow with all Gold Standard features
+step_header "E5: Multiple features with all Gold Standard features"
+if [ -f "$PROJECT_ROOT/scripts/new-task.sh" ] && [ -f "$PROJECT_ROOT/scripts/validate-state.sh" ] && [ -f "$PROJECT_ROOT/scripts/validate-commit-message.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/"*.sh "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/"*.sh 2>/dev/null || true
+    # Copy templates directory
+    mkdir -p "$TEST_REPO_DIR/.claude/templates"
+    cp -r "$PROJECT_ROOT/.claude/templates/"* "$TEST_REPO_DIR/.claude/templates/" 2>/dev/null || true
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    export NO_EDITOR=1
+    
+    # Install hooks
+    echo -e "y\ny" | ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1 || true
+    
+    # Create multiple features
+    yes "n" 2>/dev/null | ./scripts/new-task.sh feature "Feature 1" > /dev/null 2>&1 || true
+    yes "n" 2>/dev/null | ./scripts/new-task.sh feature "Feature 2" > /dev/null 2>&1 || true
+    
+    FEATURE_FILES=$(find .claude/active -name "feature-*.md" | wc -l)
+    if [ "$FEATURE_FILES" -ge 2 ]; then
+        # Make code change with state update for one feature
+        FEATURE_FILE=$(find .claude/active -name "feature-*.md" | head -1)
+        mkdir -p src
+        echo "code" > src/app.ts
+        echo "" >> "$FEATURE_FILE"
+        echo "**$(date +%Y-%m-%d) 12:00** - Update" >> "$FEATURE_FILE"
+        git add src/app.ts "$FEATURE_FILE"
+        
+        # Commit with valid message
+        if git commit -m "feat(test): add feature" > /dev/null 2>&1; then
+            log_pass "E5: Multiple features with all Gold Standard features"
+        else
+            log_fail "E5: Multiple features with all Gold Standard features" "Workflow failed"
+        fi
+    else
+        log_fail "E5: Multiple features with all Gold Standard features" "Features not created"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "E5: Multiple features with all Gold Standard features (scripts not found)"
+fi
+
+# ============================================================================
+# Category F: Hook Installation Script Tests
+# ============================================================================
+
+step_header "Category F: Hook Installation Script"
+
+# Test F1: install-pre-commit-hook.sh creates example files
+step_header "F1: Hook installation creates example files"
+if [ -f "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" "$TEST_REPO_DIR/scripts/"
+    cp "$PROJECT_ROOT/scripts/validate-state.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/install-pre-commit-hook.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Remove existing examples if any
+    rm -f .git/hooks/*.example
+    
+    echo -e "y\ny" | ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1
+    
+    if [ -f ".git/hooks/pre-commit.example" ] && [ -f ".git/hooks/commit-msg.example" ]; then
+        log_pass "F1: Hook installation creates example files"
+    else
+        log_fail "F1: Hook installation creates example files" "Example files not created"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "F1: Hook installation creates example files (script not found)"
+fi
+
+# Test F2: install-pre-commit-hook.sh updates existing example files
+step_header "F2: Hook installation updates existing example files"
+if [ -f "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/install-pre-commit-hook.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create old example file
+    echo "old content" > .git/hooks/pre-commit.example
+    OLD_SIZE=$(stat -f%z .git/hooks/pre-commit.example 2>/dev/null || stat -c%s .git/hooks/pre-commit.example 2>/dev/null || echo "0")
+    
+    echo -e "y\ny" | ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1
+    
+    NEW_SIZE=$(stat -f%z .git/hooks/pre-commit.example 2>/dev/null || stat -c%s .git/hooks/pre-commit.example 2>/dev/null || echo "0")
+    if [ "$NEW_SIZE" != "$OLD_SIZE" ]; then
+        log_pass "F2: Hook installation updates existing example files"
+    else
+        log_fail "F2: Hook installation updates existing example files" "Example file not updated"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "F2: Hook installation updates existing example files (script not found)"
+fi
+
+# Test F3: Script installs pre-commit hook correctly
+step_header "F3: Hook installation installs pre-commit hook"
+if [ -f "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" "$TEST_REPO_DIR/scripts/"
+    cp "$PROJECT_ROOT/scripts/validate-state.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/install-pre-commit-hook.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    rm -f .git/hooks/pre-commit
+    
+    echo -e "y\ny" | ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1
+    
+    if [ -f ".git/hooks/pre-commit" ] && [ -x ".git/hooks/pre-commit" ] && grep -q "validate-state.sh" .git/hooks/pre-commit 2>/dev/null; then
+        log_pass "F3: Hook installation installs pre-commit hook"
+    else
+        log_fail "F3: Hook installation installs pre-commit hook" "Pre-commit hook not installed correctly"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "F3: Hook installation installs pre-commit hook (script not found)"
+fi
+
+# Test F4: Script installs commit-msg hook correctly
+step_header "F4: Hook installation installs commit-msg hook"
+if [ -f "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" "$TEST_REPO_DIR/scripts/"
+    cp "$PROJECT_ROOT/scripts/validate-commit-message.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/install-pre-commit-hook.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    rm -f .git/hooks/commit-msg
+    
+    echo -e "y\ny" | ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1
+    
+    if [ -f ".git/hooks/commit-msg" ] && [ -x ".git/hooks/commit-msg" ] && grep -q "validate-commit-message.sh" .git/hooks/commit-msg 2>/dev/null; then
+        log_pass "F4: Hook installation installs commit-msg hook"
+    else
+        log_fail "F4: Hook installation installs commit-msg hook" "Commit-msg hook not installed correctly"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "F4: Hook installation installs commit-msg hook (script not found)"
+fi
+
+# Test F5: Script handles existing hooks (overwrite prompt)
+step_header "F5: Hook installation handles existing hooks"
+if [ -f "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" ]; then
+    TEST_REPO_DIR=$(setup_test_git_repo)
+    cp "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" "$TEST_REPO_DIR/scripts/"
+    chmod +x "$TEST_REPO_DIR/scripts/install-pre-commit-hook.sh"
+    
+    cd "$TEST_REPO_DIR" || exit 1
+    # Create existing hook
+    echo "existing hook" > .git/hooks/pre-commit
+    chmod +x .git/hooks/pre-commit
+    
+    # Test with 'n' (skip)
+    echo -e "n\ny" | ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1
+    if grep -q "existing hook" .git/hooks/pre-commit 2>/dev/null; then
+        # Test with 'y' (overwrite)
+        echo -e "y\ny" | ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1
+        if ! grep -q "existing hook" .git/hooks/pre-commit 2>/dev/null; then
+            log_pass "F5: Hook installation handles existing hooks"
+        else
+            log_fail "F5: Hook installation handles existing hooks" "Overwrite did not work"
+        fi
+    else
+        log_fail "F5: Hook installation handles existing hooks" "Skip did not work"
+    fi
+    cleanup_test_git_repo
+else
+    log_skip "F5: Hook installation handles existing hooks (script not found)"
+fi
+
+# Test F6: Script validates git repository
+step_header "F6: Hook installation validates git repository"
+if [ -f "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" ]; then
+    TEST_REPO_DIR=$(mktemp -d)
+    cd "$TEST_REPO_DIR" || exit 1
+    cp "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || mkdir -p scripts
+    cp "$PROJECT_ROOT/scripts/install-pre-commit-hook.sh" "$TEST_REPO_DIR/scripts/" 2>/dev/null || true
+    chmod +x "$TEST_REPO_DIR/scripts/install-pre-commit-hook.sh" 2>/dev/null || true
+    
+    # No .git directory
+    if ! ./scripts/install-pre-commit-hook.sh > /dev/null 2>&1; then
+        log_pass "F6: Hook installation validates git repository"
+    else
+        log_fail "F6: Hook installation validates git repository" "Script did not validate git repo"
+    fi
+    rm -rf "$TEST_REPO_DIR"
+else
+    log_skip "F6: Hook installation validates git repository (script not found)"
 fi
 
 # Summary

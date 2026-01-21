@@ -41,9 +41,25 @@ fi
 
 TASK_FILE=$1
 
+# Mode detection - check if we're in bootstrap mode
+ACTIVE_COUNT=$(ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l)
+
+if [ $ACTIVE_COUNT -eq 0 ]; then
+    echo -e "${YELLOW}⚠️  Bootstrap mode - no active features${NC}"
+    echo ""
+    echo "Create first feature:"
+    echo "  ./scripts/new-task.sh feature 'Your First Feature'"
+    echo ""
+    echo "State tracking will begin after first feature is created."
+    exit 0
+fi
+
 # Check if file exists
 if [ ! -f "$TASK_FILE" ]; then
     echo -e "${RED}Error: Task file not found: $TASK_FILE${NC}"
+    echo ""
+    echo "Available active features:"
+    ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | head -5
     exit 1
 fi
 

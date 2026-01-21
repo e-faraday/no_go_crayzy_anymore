@@ -19,7 +19,7 @@ fi
 
 SCRIPTS_DIR="$SCRIPT_DIR/scripts"
 
-# Proje kontrolü
+# Project check
 if [ ! -d "$SCRIPTS_DIR" ]; then
     echo "❌ Error: scripts/ directory not found"
     echo "   Run this from your MDD project root"
@@ -51,6 +51,15 @@ get_script() {
         dailysummary|daily-summary) echo "daily-summary.sh" ;;
         syncall|sync-all) echo "sync-all-tasks.sh" ;;
         setup) echo "setup.sh" ;;
+        # Gold Standard - Validation & Hooks
+        validatestate|validate-state) echo "validate-state.sh" ;;
+        verifyenvparity|verify-env-parity) echo "verify-env-parity.sh" ;;
+        detectaffectedtests|detect-affected-tests) echo "detect-affected-tests.sh" ;;
+        installhooks|install-hooks|installprecommithook|install-pre-commit-hook) echo "install-pre-commit-hook.sh" ;;
+        validatecommit|validate-commit|validatecommitmessage|validate-commit-message) echo "validate-commit-message.sh" ;;
+        # Testing
+        testactivemode|test-active-mode) echo "test-active-mode.sh" ;;
+        e2etest|e2e-test) echo "e2e-test.sh" ;;
         *) echo "" ;;
     esac
 }
@@ -80,11 +89,24 @@ if [ $# -eq 0 ]; then
     echo "  dailysummary                 Show daily summary"
     echo "  syncall                      Sync all tasks"
     echo ""
+    echo "Gold Standard (Validation & Hooks):"
+    echo "  validatestate                Validate state is updated"
+    echo "  verifyenvparity              Verify CI/test config parity"
+    echo "  detectaffectedtests          Detect which tests are affected"
+    echo "  installhooks                 Install git hooks"
+    echo "  validatecommit <file>        Validate commit message format"
+    echo ""
+    echo "Testing:"
+    echo "  testactivemode [--category] Run Active Mode tests"
+    echo "  e2etest                     Run E2E test suite"
+    echo ""
     echo "Examples:"
     echo "  mdd newtask feature \"Add dark mode\""
     echo "  mdd checktask .claude/active/feature-x.md \"Task 1\""
     echo "  mdd autosync"
     echo "  mdd archive"
+    echo "  mdd validatestate"
+    echo "  mdd installhooks"
     echo ""
     echo "Note: You can also use full script paths: ./scripts/new-task.sh"
     exit 0

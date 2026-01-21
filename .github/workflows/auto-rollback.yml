@@ -1,0 +1,57 @@
+name: Automatic Rollback on Main CI Failure
+
+on:
+  workflow_run:
+    workflows: ["Active Mode Tests"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  check-and-rollback:
+    name: Check CI Status and Rollback if Failed
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'failure' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          
+      - name: Get last commit
+        id: last-commit
+        run: |
+          LAST_COMMIT=$(git rev-parse HEAD)
+          echo "commit=$LAST_COMMIT" >> $GITHUB_OUTPUT
+          echo "Last commit: $LAST_COMMIT"
+          
+      - name: Check if rollback is enabled
+        id: rollback-check
+        run: |
+          if [ "${{ vars.ENABLE_AUTO_ROLLBACK }}" = "true" ] || [ "${{ secrets.ENABLE_AUTO_ROLLBACK }}" = "true" ]; then
+            echo "enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "enabled=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Auto-rollback is disabled. Set ENABLE_AUTO_ROLLBACK=true to enable."
+          fi
+          
+      - name: Rollback last commit
+        if: steps.rollback-check.outputs.enabled == 'true'
+        run: |
+          echo "🔄 Rolling back last commit..."
+          PREVIOUS_COMMIT=$(git rev-parse HEAD~1)
+          git reset --hard $PREVIOUS_COMMIT
+          git push origin main --force
+          echo "✅ Rolled back to: $PREVIOUS_COMMIT"
+          
+      - name: Create emergency fix branch
+        if: steps.rollback-check.outputs.enabled == 'true'
+        id: create-emergency
+        run: |
+          EMERGENCY_BRANCH="hotfix/rollback-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$EMERGENCY_BRANCH"
+          git push origin "$EMERGENCY_BRANCH"
+          echo "branch=$EMERGENCY_BRANCH" >> $GITHUB_OUTPUT

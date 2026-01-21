@@ -265,6 +265,92 @@ MDD supports these checkpoint types:
 
 ---
 
+## 🔄 Bootstrap vs Active Mode
+
+MDD automatically detects your project state and adjusts behavior accordingly.
+
+### Mode Detection
+
+MDD checks for active features to determine the current mode:
+
+```bash
+ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l
+# Output: 0 = Bootstrap, >0 = Active
+```
+
+### Bootstrap Mode (New Project)
+
+**When:** No active features exist (`.claude/active/` is empty or only contains `.gitkeep`)
+
+**Behavior:**
+- ✅ State tracking **NOT required** (no state exists yet)
+- ✅ OK to make code changes without state updates
+- ✅ OK to commit without validation
+- ✅ OK to create first feature
+
+**To start:**
+```bash
+./scripts/new-task.sh feature "Your First Feature"
+```
+
+**After first feature created:** Project automatically switches to Active Mode.
+
+### Active Mode (Existing Project)
+
+**When:** Active features exist in `.claude/active/`
+
+**Behavior:**
+- ✅ State tracking **MANDATORY**
+- ✅ Every code change must update state file
+- ✅ Fresh Chat auto-loads current state
+- ✅ Pre-commit hook validates state updates
+
+**State update required:**
+```bash
+# After code changes, update state
+./scripts/auto-sync.sh .claude/active/your-feature.md
+```
+
+**Validation:**
+```bash
+# Check if state is up to date
+./scripts/validate-state.sh
+```
+
+### Mode Transition
+
+**Bootstrap → Active:**
+- Happens automatically when first feature is created
+- State tracking becomes mandatory
+- Validation scripts start enforcing rules
+
+**Active → Bootstrap:**
+- Rare, only when all features are archived
+- Happens automatically when `.claude/active/` becomes empty
+
+### Why This Matters
+
+**Bootstrap Mode:**
+- Prevents unnecessary warnings in new projects
+- Allows you to set up project structure first
+- No state discipline until you're ready
+
+**Active Mode:**
+- Ensures continuity across Fresh Chat sessions
+- Prevents context rot
+- Maintains workflow integrity
+
+**Check current mode:**
+```bash
+# Quick check
+ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l
+
+# Detailed view
+./scripts/daily-summary.sh
+```
+
+---
+
 ## 📦 Automation Tools (The Engine)
 
 These scripts automate your workflow discipline with Cursor:
@@ -358,9 +444,48 @@ For frictionless automation, configure `.claude/settings.json` (included in this
 
 ---
 
+## 🧪 Testing
+
+### Active Mode Test Suite
+
+Comprehensive test suite for Active Mode functionality with **41 test cases** across **10 categories**:
+
+```bash
+# Run all tests
+./scripts/test-active-mode.sh --all
+
+# Run specific category
+./scripts/test-active-mode.sh --category detection
+./scripts/test-active-mode.sh --category enforcement
+./scripts/test-active-mode.sh --category validation
+```
+
+**Test Categories:**
+1. Active Mode Detection
+2. State Update Enforcement
+3. validate-state.sh Script Tests
+4. Pre-Commit Hook Tests
+5. Fresh Chat Auto-Load Tests
+6. auto-sync.sh Script Tests
+7. Edge Cases
+8. Integration Tests
+9. Performance Tests
+10. Error Handling
+
+**CI/CD Integration:**
+- Tests run automatically on push/PR
+- Daily scheduled tests at 2 AM UTC
+- GitHub Actions workflows in `.github/workflows/`
+
+See `tests/README.md` for complete test documentation.
+
+---
+
 ## 📚 Docs
 
 - `mdd-template/WORKFLOW.md` - Complete workflow guide
+- `tests/README.md` - Test suite documentation
+- `tests/TEST_PLAN_IMPLEMENTATION.md` - Test plan implementation summary
 
 ---
 

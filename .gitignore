@@ -1,4 +1,4 @@
-# Test dosyaları
+# Test files
 scripts/test-runner.sh
 E2E_TEST_RESULTS.log
 # Note: e2e-test.sh is kept as it's part of the test infrastructure
@@ -7,17 +7,17 @@ TEST_PLAN.md
 plans/mdd_test_planı_*.plan.md
 plans/end-to-end_test_senaryosu_*.plan.md
 
-# Geçici dosyalar
+# Temporary files
 temp_extract/
 *.zip
 *.bak
 *.log
 
-# OS dosyaları
+# OS files
 .DS_Store
 ._*
 
-# Claude active/completed (test dosyaları hariç)
+# Claude active/completed (excluding test files)
 .claude/active/feature-*-test*.md
 .claude/active/feature-bulk-test*.md
 .claude/active/feature-edge-test.md
@@ -28,3 +28,6 @@ temp_extract/
 .claude/completed/*/feature-test*.md
 .claude/completed/*/bug-*.md
 .claude/completed/*/refactor-*.md
+
+# Template and documentation folders (for local use only)
+docs/

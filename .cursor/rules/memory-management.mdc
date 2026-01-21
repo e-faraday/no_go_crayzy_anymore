@@ -154,3 +154,90 @@ Use these learnings in this chat."
 - ✅ **Active task** → Risk of error repetition → Check task-specific memory
 - ✅ **New task** → Learn from general patterns → Check `memory.md`
 - ❌ **Completed task** → No error repetition → Memory not read (not needed)
+
+## State First Protocol
+
+**Integration with state-tracking.mdc**
+
+Memory and state are interconnected. This protocol ensures state updates happen BEFORE code commits.
+
+### Rule: State Updates Come BEFORE Code Commits
+
+**When working on active feature:**
+
+1. Make code changes
+2. Update feature.md (Progress Log + Checkpoint)
+3. Verify state write (git diff .claude/active/)
+4. ONLY THEN commit code
+
+**Verification command:**
+```bash
+git diff .claude/active/
+# Must show changes to Progress Log or Checkpoint sections
+```
+
+### Bootstrap Mode Exception
+
+**When in Bootstrap Mode (no active features):**
+- Skip state validation
+- Create first feature with `./scripts/new-task.sh feature "Name"`
+- After first feature created, state discipline becomes mandatory
+
+**Mode detection:**
+```bash
+ACTIVE_COUNT=$(ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l)
+# 0 = Bootstrap (state optional), >0 = Active (state mandatory)
+```
+
+### Why State First Matters for Memory
+
+**Without state updates:**
+- Fresh Chat opens → AI reads old state
+- AI doesn't know recent changes
+- Risk of repeating already-solved problems
+
+**With state updates:**
+- Fresh Chat opens → AI reads current state
+- AI knows what was done, what worked, what failed
+- Memory becomes effective (knows context)
+
+**Example:**
+```markdown
+# In feature.md Progress Log
+**2026-01-21 14:30** - Plan 2: Fixed theme flicker bug
+- Root cause: CSS transition timing
+- Solution: Changed transition from 200ms to 300ms
+- Memory: Don't use <200ms transitions (causes flicker)
+```
+
+When Fresh Chat opens and reads this, AI remembers the solution and won't repeat the mistake.
+
+### Enforcement
+
+This protocol is enforced by:
+- `state-tracking.mdc` → Mandatory state update rule
+- `validate-state.sh` → Automated validation script
+- `.git/hooks/pre-commit` → Blocks commits without state update
+
+### Integration Points
+
+1. **Memory Write** (Phase 1) → Happens in feature.md or memory.md
+2. **State Update** (State First) → Updates feature.md checkpoint/progress
+3. **Fresh Chat** (Phase 2) → Reads updated state and memories together
+4. **Archive** (Phase 3) → State and memories archived together
+
+**Order matters:**
+```
+Work → Write Memory → Update State → Commit → Fresh Chat → Load State+Memory
+```
+
+### Quick Reference
+
+**Before ending turn:**
+- [ ] Code changes committed?
+- [ ] Feature.md Progress Log updated?
+- [ ] Feature.md Checkpoint updated (if plan changed)?
+- [ ] Memory added (if error/solution found)?
+- [ ] State validation passed?
+
+**All Yes?** → Safe to end turn or start Fresh Chat.

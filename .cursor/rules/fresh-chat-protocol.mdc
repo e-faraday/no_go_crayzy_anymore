@@ -1,0 +1,361 @@
+# Fresh Chat Protocol - Automatic State Loading
+
+## Purpose
+Automatically load project state when new chat session starts to prevent context loss and ensure continuity across Fresh Chat sessions.
+
+## Core Concept
+
+**Problem:** Fresh Chat (Shift+Cmd+L) clears context for performance, but this causes AI to "forget" current project state.
+
+**Solution:** Every new chat automatically detects and loads active feature state before proceeding with user request.
+
+## Automatic Execution Trigger
+
+**When to run this protocol:**
+- First message in any new chat session
+- After Fresh Chat (Shift+Cmd+L) is invoked
+- When Cursor workspace is reopened
+
+**Do NOT run if:**
+- Chat already has context loaded (continuation in same chat)
+- User explicitly says "skip state loading"
+
+## Protocol Steps
+
+### Step 1: Detect Project Mode
+
+**Always run first:**
+
+```bash
+ACTIVE_FILES=$(ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep)
+ACTIVE_COUNT=$(echo "$ACTIVE_FILES" | grep -c ".md" || echo "0")
+```
+
+**Mode determination:**
+- `ACTIVE_COUNT = 0` → Bootstrap Mode
+- `ACTIVE_COUNT > 0` → Active Mode
+
+### Step 2: Bootstrap Mode Response (No Active Features)
+
+**If ACTIVE_COUNT = 0:**
+
+**Check conversation length and token usage:**
+- Count approximate message exchanges in current conversation
+- If conversation >20 messages:
+  - Check every 10 messages (at 30, 40, 50, etc.)
+  - Estimate token count using word-based calculation:
+    - Count words in conversation history (user + assistant messages)
+    - Include code snippets, file references, and all text
+    - Formula: `estimated_tokens = word_count × 1.3`
+  - If estimated tokens >70K: Show Fresh Chat reminder
+
+**Display to user (normal case - <20 messages OR <70K tokens):**
+```
+🆕 Bootstrap Mode - New Project
+
+No active features in .claude/active/ yet.
+
+To start working with MDD:
+  ./scripts/new-task.sh feature "Your First Feature"
+
+State tracking will begin after first feature is created.
+
+Ready for your request.
+```
+
+**Display to user (if conversation >20 messages AND estimated tokens >70K):**
+```
+🆕 Bootstrap Mode - New Project
+
+No active features in .claude/active/ yet.
+
+⚠️  Performance Tip: Conversation is getting long (~{estimated_tokens}K tokens estimated).
+Consider opening a Fresh Chat (Shift+Cmd+L) to reset context and improve performance.
+
+To start working with MDD:
+  ./scripts/new-task.sh feature "Your First Feature"
+
+State tracking will begin after first feature is created.
+
+Ready for your request.
+```
+
+**Then:** Proceed with user's original request without loading state.
+
+**Note:** 
+- Do NOT warn or block in bootstrap mode. This is a valid state for new projects.
+- Fresh Chat reminder is informational only, not blocking.
+- Token estimation: ~1.3 tokens per word (approximate)
+- Check performed every 10 messages after 20 message threshold
+
+### Step 3: Active Mode Response (Features Exist)
+
+**If ACTIVE_COUNT > 0:**
+
+**Action:** Load active feature files automatically.
+
+```bash
+for file in $ACTIVE_FILES; do
+  # Read each active feature file
+  # Extract key information
+done
+```
+
+**Information to extract from each feature file:**
+
+1. **Frontmatter:**
+   - `type` (feature/bug/refactor)
+   - `status` (todo/in-progress/blocked/completed)
+   - `priority` (low/medium/high/critical)
+   - `created` date
+
+2. **Current Checkpoint section:**
+   ```markdown
+   ### 🔖 Current Checkpoint
+   Working on: Plan X
+   Next: Plan Y
+   ```
+
+3. **Last 3 Progress Log entries:**
+   ```markdown
+   **2026-01-21 14:30** - Plan 2: Task completed
+   **2026-01-21 13:15** - Plan 1: Setup done
+   **2026-01-20 16:45** - Feature created
+   ```
+
+4. **Task completion status:**
+   - Count total tasks (checkboxes)
+   - Count completed tasks ([x])
+   - Identify next uncompleted task ([ ])
+
+**Display to user:**
+
+```
+📋 Active Features Loaded
+
+1. feature-dark-mode.md
+   Status: in-progress | Priority: high | Created: 2026-01-15
+   Current: Plan 2: Implementation (Task 3/5)
+   Next uncompleted: [ ] Add theme persistence
+   Last update: 2026-01-21 14:30 - ThemeToggle component created
+
+2. feature-auth-system.md
+   Status: todo | Priority: medium | Created: 2026-01-18
+   Current: Plan 1: Setup (Task 1/4)
+   Next uncompleted: [ ] Install auth dependencies
+   Last update: 2026-01-18 09:15 - Feature initialized
+
+State loaded. Ready to continue.
+```
+
+**Then:** Proceed with user's original request with full context.
+
+## Loading Priority Rules
+
+**If multiple features exist:**
+
+1. **Load all `in-progress` features first** (these are actively being worked on)
+2. **Then load `blocked` features** (may need attention)
+3. **Finally load `todo` features** (planned but not started)
+4. **Do NOT load `completed` features** (they should be archived)
+
+**Maximum features to load:** 3 active features
+
+**If more than 3 active features:**
+- Load top 3 by priority (in-progress > blocked > todo, then by priority level)
+- Show count of remaining features: `(+2 more in .claude/active/)`
+
+## User Communication Style
+
+**Bootstrap Mode:**
+- Informative, encouraging
+- Suggest next steps
+- No warnings or errors
+
+**Active Mode:**
+- Concise summary format
+- Key information only (status, current plan, next task, last update)
+- Professional tone
+- Show continuity from previous session
+
+## Integration with State Tracking
+
+This protocol works together with `state-tracking.mdc`:
+
+**State Tracking:** Ensures state is updated after work
+**Fresh Chat Protocol:** Ensures state is loaded before work
+
+**Cycle:**
+1. Work on feature → Update state (state-tracking.mdc)
+2. Context full → Fresh Chat
+3. New chat → Load state (fresh-chat-protocol.mdc)
+4. Continue work → Update state (state-tracking.mdc)
+5. Repeat...
+
+## Error Handling
+
+### Active features exist but files are corrupted
+
+```bash
+# If .md file exists but can't be parsed
+❌ Error loading feature-x.md (corrupted file)
+Attempting to load other features...
+```
+
+**Action:** Skip corrupted file, load others, warn user.
+
+### .claude/active/ directory missing
+
+```bash
+# If directory doesn't exist at all
+⚠️  Warning: .claude/active/ directory not found
+
+This might not be an MDD project. If you want to use MDD:
+  mkdir -p .claude/active
+  ./scripts/new-task.sh feature "First Feature"
+```
+
+**Action:** Treat as bootstrap mode after warning.
+
+### Git repo exists but .claude/ is gitignored
+
+```bash
+# If .claude/ is in .gitignore
+⚠️  Note: .claude/ directory is gitignored
+
+MDD state will not be tracked in version control.
+Consider removing .claude/ from .gitignore for state persistence.
+```
+
+**Action:** Continue loading, show note.
+
+## Command Examples
+
+**Manual state check:**
+```bash
+# Check if state exists
+ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep
+
+# View state summary
+./scripts/daily-summary.sh
+```
+
+**Manual state load (for testing):**
+```bash
+# Read specific feature
+cat .claude/active/feature-dark-mode.md
+
+# View just the checkpoint
+grep -A 2 "Current Checkpoint" .claude/active/feature-dark-mode.md
+```
+
+## Token Estimation Protocol (Bootstrap Mode)
+
+**When to estimate:**
+- Bootstrap mode (no active features)
+- Conversation exceeds 20 messages
+- Check performed every 10 messages (at 30, 40, 50, etc.)
+
+**Estimation method:**
+1. Count total words in conversation history:
+   - User messages
+   - Assistant responses
+   - Code snippets included
+   - File references (@file content)
+   - All visible text in context
+
+2. Apply conversion formula:
+   ```
+   estimated_tokens = word_count × 1.3
+   ```
+   (Standard approximation: 1 word ≈ 1.3 tokens)
+
+3. Compare to threshold:
+   - If estimated_tokens > 70,000: Show Fresh Chat reminder
+   - If estimated_tokens ≤ 70,000: No reminder
+
+**Example calculation:**
+- Conversation has ~50,000 words
+- Estimated tokens: 50,000 × 1.3 = 65,000 tokens
+- Result: No reminder (below 70K threshold)
+
+- Conversation has ~60,000 words  
+- Estimated tokens: 60,000 × 1.3 = 78,000 tokens
+- Result: Show reminder (above 70K threshold)
+
+**Important:**
+- This is an approximation, not exact token count
+- Actual token count may vary based on:
+  - Code formatting (more tokens)
+  - Special characters (more tokens)
+  - Model-specific tokenization
+- Reminder is informational, not blocking
+- User can continue working regardless
+
+## Performance Considerations
+
+**Loading is fast:**
+- Reading 3 markdown files takes <100ms
+- Parsing is simple text processing
+- No network calls or heavy computation
+
+**Context impact:**
+- Each feature file ~2-5KB
+- 3 features = ~6-15KB total
+- Minimal context usage (<1% of 200K token limit)
+
+## Testing the Protocol
+
+**Test Bootstrap Mode:**
+```bash
+# 1. Clear active features
+rm .claude/active/*.md
+touch .claude/active/.gitkeep
+
+# 2. Start fresh chat
+[Shift+Cmd+L]
+
+# Expected: Bootstrap mode message, no errors
+```
+
+**Test Active Mode:**
+```bash
+# 1. Create test feature
+./scripts/new-task.sh feature "Test"
+
+# 2. Start fresh chat
+[Shift+Cmd+L]
+
+# Expected: Feature loaded and displayed
+```
+
+## Protocol Checklist
+
+When new chat starts:
+
+- [ ] Detect mode (bootstrap vs active)
+- [ ] If bootstrap: Count messages
+- [ ] If bootstrap AND >20 messages: Check if message count is multiple of 10
+- [ ] If check needed: Estimate tokens (word_count × 1.3)
+- [ ] If estimated tokens >70K: Show Fresh Chat reminder
+- [ ] If bootstrap: Show friendly message, proceed
+- [ ] If active: Load up to 3 features
+- [ ] Extract key info: status, checkpoint, last update
+- [ ] Display concise summary
+- [ ] Proceed with user request
+
+## Summary
+
+> "Fresh Chat is for performance. State loading is for continuity. Together they enable infinite-context workflow."
+
+This protocol ensures that every new chat session has full awareness of project state, preventing the "amnesia" problem that comes with context resets.
+
+## Important Notes
+
+- **Run automatically, not manually:** User shouldn't need to remember to load state
+- **Silent in bootstrap mode:** Don't warn about missing state when starting new project
+- **Fresh Chat reminder:** If bootstrap mode AND conversation >20 messages AND estimated tokens >70K, suggest Fresh Chat for performance
+- **Token estimation:** Performed every 10 messages after 20 message threshold (word_count × 1.3)
+- **Concise in active mode:** Show key info only, don't overwhelm
+- **Always proceed:** After loading (or not loading), continue with user's request
+- **Non-blocking:** Loading never prevents work, just provides context

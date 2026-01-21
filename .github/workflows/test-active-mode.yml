@@ -1,0 +1,61 @@
+name: Active Mode Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  test-active-mode:
+    name: Active Mode Test Suite
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+          
+      - name: Environment Parity Check
+        run: |
+          if [ -f scripts/verify-env-parity.sh ]; then
+            ./scripts/verify-env-parity.sh || {
+              echo "❌ Environment parity check failed"
+              echo "Lokal ve CI test konfigürasyonları eşleşmiyor"
+              exit 1
+            }
+          else
+            echo "⚠️  verify-env-parity.sh not found - skipping"
+          fi
+          
+      - name: Detect Affected Tests
+        id: affected-tests
+        run: |
+          if [ -f scripts/detect-affected-tests.sh ]; then
+            AFFECTED=$(./scripts/detect-affected-tests.sh)
+            echo "categories=$AFFECTED" >> $GITHUB_OUTPUT
+            echo "Affected test categories: $AFFECTED"
+          else
+            echo "categories=all" >> $GITHUB_OUTPUT
+            echo "⚠️  detect-affected-tests.sh not found - running all tests"
+          fi
+          
+      - name: Run Affected Tests
+        if: steps.affected-tests.outputs.categories != 'all' && steps.affected-tests.outputs.categories != ''
+        run: |
+          CATEGORIES="${{ steps.affected-tests.outputs.categories }}"
+          for category in $CATEGORIES; do
+            echo "Running category: $category"
+            ./scripts/test-active-mode.sh --category "$category"
+          done
+          
+      - name: Run All Tests
+        if: steps.affected-tests.outputs.categories == 'all' || steps.affected-tests.outputs.categories == ''
+        run: ./scripts/test-active-mode.sh --all

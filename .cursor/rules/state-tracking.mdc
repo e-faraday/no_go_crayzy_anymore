@@ -1,0 +1,188 @@
+# State Tracking - Mandatory Workflow Discipline
+
+## Purpose
+Enforce state updates after every code change to prevent context rot in Fresh Chat sessions. This is the backbone of MDD's state machine integrity.
+
+## Core Rule: "No State Update = No Task Complete"
+
+**Fundamental principle:** Every code change MUST be accompanied by a state update in the feature file.
+
+## Mode Detection (ALWAYS FIRST STEP)
+
+Before applying any state tracking rules, detect current project mode:
+
+```bash
+ACTIVE_COUNT=$(ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l)
+```
+
+**Two Modes:**
+- **Bootstrap Mode**: ACTIVE_COUNT = 0 (no features exist yet)
+- **Active Mode**: ACTIVE_COUNT > 0 (features exist)
+
+## Bootstrap Mode Rules (New Project)
+
+When ACTIVE_COUNT = 0:
+
+**Behavior:**
+- ✅ State tracking NOT required (no state exists yet)
+- ✅ OK to make code changes without state updates
+- ✅ OK to commit without validation
+- ✅ OK to create first feature
+
+**Suggested Action:**
+```bash
+./scripts/new-task.sh feature "Your First Feature"
+```
+
+**After first feature created:** Project automatically switches to Active Mode.
+
+## Active Mode Rules (Existing Project)
+
+When ACTIVE_COUNT > 0:
+
+### Turn-End Protocol (BLOCKING)
+
+**MANDATORY before ending ANY turn where code/files were modified:**
+
+1. **Update Progress Log** in active feature file:
+   ```markdown
+   **YYYY-MM-DD HH:MM** - Plan {N}: {specific action completed}
+   ```
+
+2. **Mark completed tasks** if applicable:
+   ```markdown
+   - [x] Task description
+   ```
+
+3. **Update Current Checkpoint** if plan changed:
+   ```markdown
+   ### 🔖 Current Checkpoint
+   Working on: Plan {N}
+   Next: Plan {N+1}
+   ```
+
+4. **Verify state write:**
+   ```bash
+   git diff .claude/active/*.md
+   # Must show changes to feature file
+   ```
+
+5. **ONLY THEN** proceed to commit code or start new task
+
+**NO EXCEPTIONS.** State write = Task completion proof.
+
+### Forbidden Actions (STRICT)
+
+When in Active Mode, you MUST NEVER:
+
+- ❌ Start new task before updating state of current task
+- ❌ Close turn without progress log entry
+- ❌ Skip checkpoint update after completing a plan
+- ❌ Commit code changes before updating state file
+- ❌ Make multiple code changes without corresponding state updates
+
+### Validation Command
+
+Before committing, verify state is updated:
+
+```bash
+./scripts/validate-state.sh
+```
+
+**Exit codes:**
+- `0` = Valid (state updated or bootstrap mode)
+- `1` = Warning (state loaded but no progress entry for today)
+- `2` = BLOCKING (code changed but state not updated)
+
+## State Update Checklist
+
+When working on active feature, after ANY code change:
+
+- [ ] Progress Log has new entry with today's date
+- [ ] Task checkboxes reflect completion status
+- [ ] Checkpoint updated if plan completed
+- [ ] Feature file shows modification in git status
+- [ ] Validation script passes (exit 0)
+
+## Why This Matters
+
+**Problem Without State Updates:**
+1. You make code changes in Chat Session A
+2. Context fills up, you start Fresh Chat (Session B)
+3. AI reads feature.md and sees old state
+4. AI doesn't know what was done in Session A
+5. AI might redo work or make conflicting changes
+
+**Solution With State Updates:**
+1. You make code changes in Chat Session A
+2. Before ending turn, update feature.md Progress Log
+3. Context fills up, you start Fresh Chat (Session B)
+4. AI reads feature.md and sees current state
+5. AI knows exactly where to continue
+
+## Command Reference
+
+```bash
+# Check current mode
+ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l
+# Output: 0 = Bootstrap, >0 = Active
+
+# Update progress (Active Mode only)
+./scripts/update-progress.sh .claude/active/feature-x.md "Completed task Y"
+
+# Mark task complete (Active Mode only)
+./scripts/check-task.sh .claude/active/feature-x.md "1.1"
+
+# Run all automatic updates (Active Mode only)
+./scripts/auto-sync.sh .claude/active/feature-x.md
+
+# Validate state before commit (Always safe to run)
+./scripts/validate-state.sh
+```
+
+## Important Notes
+
+- **Bootstrap → Active transition:** Happens automatically when first feature created
+- **Active → Bootstrap transition:** Rare, only when all features archived
+- **Mode detection is automatic:** Scripts check mode before applying rules
+- **Validation is non-intrusive:** Bootstrap mode always passes validation
+
+## Integration with Other Systems
+
+This rule integrates with:
+- `memory-management.mdc` → Memory is tied to state
+- `fresh-chat-protocol.mdc` → Fresh chat loads state
+- `mdd-executor.md` agent → Enforces state updates during execution
+- `validate-state.sh` → Automated validation
+- `.git/hooks/pre-commit` → Blocks commits if state not updated
+
+## Rule Enforcement
+
+**Cursor Behavior Expected:**
+1. Before ending turn, always check if mode is Active
+2. If Active, verify state file was updated
+3. If not updated, update it before ending turn
+4. Never skip this check
+
+**Human Verification:**
+- Pre-commit hook will block commits if state not updated
+- Daily workflow includes `./scripts/auto-sync.sh` runs
+- Git history shows state files updated alongside code
+
+## Quick Decision Tree
+
+```
+Code changed?
+├─ No → No action needed
+└─ Yes → Check mode
+    ├─ Bootstrap (0 features) → No state update needed, continue
+    └─ Active (features exist) → MUST update state before continuing
+        ├─ State updated? → ✅ Continue
+        └─ State not updated? → ❌ STOP, update state first
+```
+
+## Summary
+
+> "In Bootstrap Mode, state discipline is optional. In Active Mode, state discipline is mandatory. There is no middle ground."
+
+This strict rule prevents the context rot that happens when AI forgets what was done in previous chat sessions.

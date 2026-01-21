@@ -9,6 +9,41 @@ This documentation covers all steps from creating a feature to archiving it. Man
 - **Plan** - Execution unit (2-3 tasks)
 - **Task** - Atomic work unit
 
+## Starting New Project (Bootstrap Mode)
+
+### First Time Setup
+
+When starting a new project, MDD operates in **Bootstrap Mode** until the first feature is created.
+
+**Check current mode:**
+```bash
+ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l
+# Output: 0 = Bootstrap Mode, >0 = Active Mode
+```
+
+**Bootstrap Mode characteristics:**
+- ✅ No state tracking required (no features exist yet)
+- ✅ Code changes don't need state updates
+- ✅ Commits don't require validation
+- ✅ Perfect for initial project setup
+
+**Create first feature:**
+```bash
+# 1. Create your first feature
+./scripts/new-task.sh feature "Initial Setup"
+
+# 2. Project automatically switches to Active Mode
+# State tracking becomes mandatory from now on
+```
+
+**After first feature created:**
+- Project switches to **Active Mode**
+- State tracking becomes mandatory
+- Validation scripts start enforcing rules
+- Fresh Chat auto-loads state
+
+**Note:** State validation only applies after first feature is created. In Bootstrap Mode, you can freely set up your project structure without worrying about state updates.
+
 ## Workflow Flow
 
 ### Phase 1: Task Creation and Planning

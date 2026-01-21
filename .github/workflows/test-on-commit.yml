@@ -1,0 +1,33 @@
+name: Test on Commit
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quick-test:
+    name: Quick Active Mode Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+        
+      - name: Environment Parity Check
+        run: |
+          if [ -f scripts/verify-env-parity.sh ]; then
+            ./scripts/verify-env-parity.sh || {
+              echo "⚠️  Environment parity warning (non-blocking for quick tests)"
+            }
+          fi
+          
+      - name: Run critical tests
+        run: |
+          ./scripts/test-active-mode.sh --category detection
+          ./scripts/test-active-mode.sh --category enforcement
+          ./scripts/test-active-mode.sh --category validation

@@ -1,0 +1,56 @@
+name: Validate Commit Messages
+
+on:
+  pull_request:
+    branches: [ '*' ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  validate-commits:
+    name: Conventional Commits Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+        
+      - name: Validate commit messages
+        run: |
+          if [ -f scripts/validate-commit-message.sh ]; then
+            # Get commits in PR
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              BASE_SHA="${{ github.event.pull_request.base.sha }}"
+              HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            else
+              BASE_SHA=$(git rev-parse HEAD~1)
+              HEAD_SHA=$(git rev-parse HEAD)
+            fi
+            
+            # Validate each commit
+            FAILED=0
+            for commit in $(git rev-list $BASE_SHA..$HEAD_SHA); do
+              COMMIT_MSG=$(git log -1 --format=%B $commit)
+              echo "$COMMIT_MSG" > /tmp/commit_msg.txt
+              
+              if ! ./scripts/validate-commit-message.sh /tmp/commit_msg.txt; then
+                echo "❌ Commit $commit has invalid message format"
+                FAILED=1
+              fi
+            done
+            
+            if [ $FAILED -eq 1 ]; then
+              echo ""
+              echo "❌ Some commits have invalid Conventional Commits format"
+              exit 1
+            fi
+            
+            echo "✅ All commit messages follow Conventional Commits format"
+          else
+            echo "⚠️  validate-commit-message.sh not found - skipping"
+          fi

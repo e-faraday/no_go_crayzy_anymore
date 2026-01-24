@@ -113,10 +113,41 @@ get_script() {
     esac
 }
 
-if [ $# -eq 0 ]; then
-    echo "MDD - Markdown Driven Development"
-    echo "Usage: mdd <command> [args...]"
-    echo "Run 'mdd' without arguments to see all commands"
+show_help() {
+    echo ""
+    echo -e "${GREEN}MDD - Markdown Driven Development${NC}"
+    echo -e "${BLUE}Usage:${NC} mdd <command> [args...]"
+    echo ""
+    echo -e "${YELLOW}Core Commands:${NC}"
+    echo "  newtask <type> <name>    Create new task (feature, bug, refactor)"
+    echo "  starttask <file>         Start working on a task"
+    echo "  updateprogress <file>    Update task progress"
+    echo "  checktask <file>         Mark task as complete"
+    echo "  archive                  Archive completed tasks"
+    echo ""
+    echo -e "${YELLOW}Automation:${NC}"
+    echo "  autosync                 Auto-sync all state files"
+    echo "  autocompletetask <file>  Auto-complete task"
+    echo "  autocompletephases       Auto-complete phases"
+    echo "  autoupdatestatus         Auto-update status"
+    echo "  autocommittask <file>    Auto-commit after task"
+    echo ""
+    echo -e "${YELLOW}Utilities:${NC}"
+    echo "  dailysummary             Show daily summary"
+    echo "  syncall                  Sync all tasks"
+    echo "  setpriority <file> <p>   Set task priority"
+    echo "  addtags <file> <tags>    Add tags to task"
+    echo "  setup                    Setup MDD in new project"
+    echo ""
+    echo -e "${BLUE}Examples:${NC}"
+    echo "  mdd newtask feature \"Add dark mode\""
+    echo "  mdd starttask .claude/active/add-dark-mode.md"
+    echo "  mdd dailysummary"
+    echo ""
+}
+
+if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ]; then
+    show_help
     exit 0
 fi
 

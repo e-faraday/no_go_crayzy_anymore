@@ -300,7 +300,7 @@ USER_BIN_DIR="$HOME/bin"
 SKIP_SYMLINK=false
 
 # Check if mdd command already exists
-EXISTING_MDD=$(which mdd 2>/dev/null)
+EXISTING_MDD=$(which mdd 2>/dev/null || true)
 if [ -n "$EXISTING_MDD" ] && [ "$EXISTING_MDD" != "$USER_BIN_DIR/mdd" ]; then
     echo -e "${YELLOW}⚠️  Warning: Another 'mdd' command found: $EXISTING_MDD${NC}"
     echo ""

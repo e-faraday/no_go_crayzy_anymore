@@ -276,3 +276,7 @@ For issues or questions: [GitHub Issues](https://github.com/e-faraday/no_go_cray
 ---
 
 **Stop managing chats. Start managing workflows.**
+
+---
+
+**Made with ❤️ for Cursor community developers**

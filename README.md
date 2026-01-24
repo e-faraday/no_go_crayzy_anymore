@@ -7,13 +7,13 @@
 
 ---
 
-## What is MDD?
+## 🌟 What is MDD?
 
 **Stop managing chats. Start managing workflows.**
 
 MDD (Markdown Driven Development) is a framework that helps you maintain context and continuity when working with AI coding assistants like Cursor. It solves the **context rot problem** - where AI assistants lose track of what you're building across chat sessions.
 
-### The Problem
+### 🧩 The Problem
 
 When working with AI coding assistants:
 - Context gets lost between chat sessions
@@ -21,7 +21,7 @@ When working with AI coding assistants:
 - Progress tracking is manual and error-prone
 - No single source of truth for project state
 
-### The Solution
+### ✅ The Solution
 
 MDD keeps all implementation work in **structured markdown files** that persist across sessions:
 
@@ -31,7 +31,7 @@ MDD keeps all implementation work in **structured markdown files** that persist 
 - **Automation Scripts**: Complete workflow automation via `mdd` commands
 - **Version Compatibility**: Prevents data corruption when moving projects between machines
 
-### Core Workflow
+### 🔁 Core Workflow
 
 ```
 1. Create a feature task     →  mdd newtask feature "Add dark mode"
@@ -44,16 +44,16 @@ All state is stored in `.claude/` directory, making projects portable.
 
 ---
 
-## Quick Start
+## ⚡ Quick Start
 
-### Installation
+### 📦 Installation
 
 ```bash
 # Clone MDD to your home directory (one-time setup)
 git clone https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
 ```
 
-### Setup New Project
+### 🏗️ Setup New Project
 
 ```bash
 # Navigate to your project
@@ -68,7 +68,7 @@ This creates:
 - `.claude/.mdd-version` (version tracking)
 - `mdd` wrapper script in project root
 
-### Basic Usage
+### ▶️ Basic Usage
 
 ```bash
 # Create a new feature
@@ -91,9 +91,9 @@ Run `mdd` without arguments to see all available commands.
 
 ---
 
-## Project Structure
+## 🗂️ Project Structure
 
-### In Your Project (Portable State)
+### 📁 In Your Project (Portable State)
 ```
 your-project/
 ├── mdd                      # Wrapper script
@@ -106,7 +106,7 @@ your-project/
     └── agents/              # Agent definitions
 ```
 
-### Global Scripts (Shared)
+### 🌍 Global Scripts (Shared)
 ```
 ~/.mdd/
 ├── scripts/                 # All automation scripts
@@ -117,7 +117,7 @@ your-project/
 
 ---
 
-## Bootstrap vs Active Mode
+## 🧭 Bootstrap vs Active Mode
 
 MDD automatically detects your project state:
 
@@ -130,7 +130,7 @@ In **Active Mode**, every code change should update the corresponding state file
 
 ---
 
-## Available Commands
+## 🧰 Available Commands
 
 | Command | Description |
 |---------|-------------|
@@ -146,7 +146,7 @@ In **Active Mode**, every code change should update the corresponding state file
 
 ---
 
-## Version Compatibility (v3.0.0)
+## 🧱 Version Compatibility (v3.0.0)
 
 MDD tracks version compatibility to prevent data corruption:
 
@@ -163,7 +163,7 @@ cat .claude/.mdd-version
 
 ---
 
-## Testing
+## 🧪 Testing
 
 ```bash
 # Run E2E tests (50 tests)
@@ -175,7 +175,7 @@ cat .claude/.mdd-version
 
 ---
 
-## Documentation
+## 📚 Documentation
 
 - [Workflow Guide](mdd-template/WORKFLOW.md)
 - [Test Documentation](tests/README.md)
@@ -183,7 +183,7 @@ cat .claude/.mdd-version
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/Amazing`)
@@ -193,19 +193,19 @@ cat .claude/.mdd-version
 
 ---
 
-## License
+## 📜 License
 
 MIT License - see LICENSE file for details.
 
 ---
 
-## Changelog
+## 🗒️ Changelog
 
-### [3.0.0] - 2026-01-24
+### 🚀 [3.0.0] - 2026-01-24
 
 #### Version Compatibility & Global Scripts Architecture
 
-**Added:**
+**✨ Added:**
 - Automatic version tracking via `.claude/.mdd-version`
 - `check-mdd-version.sh` for compatibility validation
 - **BLOCKING** behavior for major version mismatches
@@ -213,12 +213,12 @@ MIT License - see LICENSE file for details.
 - Global scripts architecture (`~/.mdd/scripts/`)
 - Projects now fully portable (only `.claude/` needed)
 
-**Changed:**
+**🔧 Changed:**
 - Scripts moved to global location
 - `setup.sh` creates version file automatically
 - `mdd` wrapper includes version checking
 
-**Migration from v2.0.0:**
+**🧭 Migration from v2.0.0:**
 ```bash
 # Install global scripts
 git clone https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
@@ -230,11 +230,11 @@ cd your-project
 
 ---
 
-### [2.0.0] - 2026-01-22
+### ⭐ [2.0.0] - 2026-01-22
 
 #### Gold Standard Implementation
 
-**Added:**
+**✨ Added:**
 - Git Hooks Integration (pre-commit, commit-msg)
 - E2E Test Suite (50 tests)
 - Active Mode Test Suite (41 tests)
@@ -242,12 +242,12 @@ cd your-project
 - Conventional Commits enforcement
 - Environment Parity verification
 
-**Statistics:**
+**📊 Statistics:**
 - Total Tests: 91 (100% pass rate)
 - New Scripts: 6
 - CI/CD Workflows: 4
 
-**Migration from v1.0.0:**
+**🧭 Migration from v1.0.0:**
 ```bash
 ./mdd installhooks
 ./mdd verifyenvparity
@@ -256,7 +256,7 @@ cd your-project
 
 ---
 
-### [1.0.0] - 2026-01-17
+### 🎉 [1.0.0] - 2026-01-17
 
 #### Initial Release
 
@@ -269,7 +269,7 @@ cd your-project
 
 ---
 
-## Support
+## 💬 Support
 
 For issues or questions: [GitHub Issues](https://github.com/e-faraday/no_go_crayzy_anymore/issues)
 

@@ -1,4 +1,4 @@
-# 🤯 No Go Crayzy Anymore
+# 🤯 Cursor No Go Crazy Anymore
 
 > **Markdown Driven Development Framework for Cursor**  
 > A lightweight, spec-driven workflow for building with AI — designed to prevent context rot by keeping implementation work in tact contexts.

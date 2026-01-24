@@ -1,9 +1,13 @@
 #!/bin/bash
 # mdd - MDD Script Wrapper (Bash + Zsh compatible)
 # Usage: mdd <command> [args...]
-#
-# Provides short commands for MDD scripts
-# Example: mdd autosync instead of ./scripts/auto-sync.sh
+
+# Color codes for output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
 # Get script directory (bash + zsh compatible, handles symlinks)
 if [[ -n "$ZSH_VERSION" ]]; then
@@ -63,120 +67,75 @@ else
     exit 1
 fi
 
-# Command mapping function (bash 3+ compatible)
+# Check version compatibility (skip for setup command and if override is set)
+if [ "$1" != "setup" ] && [ -d ".claude" ] && [ "$MDD_SKIP_VERSION_CHECK" != "1" ]; then
+    if [ -f "$SCRIPTS_DIR/check-mdd-version.sh" ]; then
+        # Run version check script
+        VERSION_CHECK_OUTPUT=$("$SCRIPTS_DIR/check-mdd-version.sh" 2>&1)
+        VERSION_CHECK_EXIT=$?
+        
+        # Always show output
+        echo "$VERSION_CHECK_OUTPUT" >&2
+        
+        # Exit 1 = Major version mismatch - BLOCKING (stop execution)
+        if [ $VERSION_CHECK_EXIT -eq 1 ]; then
+            echo "" >&2
+            echo -e "${RED}❌ Command stopped: Major version incompatibility detected.${NC}" >&2
+            echo -e "${YELLOW}Override: MDD_SKIP_VERSION_CHECK=1 mdd <command>${NC}" >&2
+            exit 1
+        fi
+        # Exit 2 = Version file missing - Non-blocking (continue)
+        # Exit 0 = Compatible - Continue normally
+    fi
+fi
+
 get_script() {
     case "$1" in
-        # Core workflow
         newtask|new-task) echo "new-task.sh" ;;
         checktask|check-task) echo "check-task.sh" ;;
         updateprogress|update-progress) echo "update-progress.sh" ;;
         starttask|start-task) echo "start-task.sh" ;;
         archivetask|archive|archive-completed) echo "archive-completed.sh" ;;
-        # Automation
         autosync|auto-sync) echo "auto-sync.sh" ;;
         autocompletetask|autocomplete-task) echo "auto-complete-task.sh" ;;
         autocompletephases|autocomplete-phases) echo "auto-complete-phases.sh" ;;
         autoupdatestatus|autoupdate-status) echo "auto-update-status.sh" ;;
         autoupdatecheckpoint|autoupdate-checkpoint) echo "auto-update-checkpoint.sh" ;;
-        # Git automation
         autocommittask|autocommit-task) echo "auto-commit-task.sh" ;;
         autocommitplan|autocommit-plan) echo "auto-commit-plan.sh" ;;
         autocommitfeature|autocommit-feature) echo "auto-commit-feature.sh" ;;
-        # Utilities
         setpriority|set-priority) echo "set-priority.sh" ;;
         addtags|add-tags) echo "add-tags.sh" ;;
         dailysummary|daily-summary) echo "daily-summary.sh" ;;
         syncall|sync-all) echo "sync-all-tasks.sh" ;;
         setup) echo "setup.sh" ;;
-        # Gold Standard - Validation & Hooks
-        validatestate|validate-state) echo "validate-state.sh" ;;
-        verifyenvparity|verify-env-parity) echo "verify-env-parity.sh" ;;
-        detectaffectedtests|detect-affected-tests) echo "detect-affected-tests.sh" ;;
-        installhooks|install-hooks|installprecommithook|install-pre-commit-hook) echo "install-pre-commit-hook.sh" ;;
-        validatecommit|validate-commit|validatecommitmessage|validate-commit-message) echo "validate-commit-message.sh" ;;
-        # Testing
-        testactivemode|test-active-mode) echo "test-active-mode.sh" ;;
-        e2etest|e2e-test) echo "e2e-test.sh" ;;
         *) echo "" ;;
     esac
 }
 
-# Show help if no command
 if [ $# -eq 0 ]; then
     echo "MDD - Markdown Driven Development"
-    echo ""
     echo "Usage: mdd <command> [args...]"
-    echo ""
-    echo "Core Commands:"
-    echo "  newtask <type> <name>        Create new task (feature/bug/refactor/decision)"
-    echo "  checktask <file> <task>      Check task checkbox"
-    echo "  updateprogress <file> <msg>  Add progress entry"
-    echo "  starttask <file> <msg>      Start task"
-    echo "  archive                     Archive completed tasks"
-    echo ""
-    echo "Automation:"
-    echo "  autosync                    Sync all tasks"
-    echo "  autocompletetask <file>     Mark task as completed"
-    echo "  autocompletephases <file>   Mark completed phases"
-    echo "  autoupdatestatus <file>     Update status automatically"
-    echo ""
-    echo "Utilities:"
-    echo "  setpriority <file> <priority>  Set priority (high/medium/low)"
-    echo "  addtags <file> <tags...>      Add tags"
-    echo "  dailysummary                 Show daily summary"
-    echo "  syncall                      Sync all tasks"
-    echo ""
-    echo "Gold Standard (Validation & Hooks):"
-    echo "  validatestate                Validate state is updated"
-    echo "  verifyenvparity              Verify CI/test config parity"
-    echo "  detectaffectedtests          Detect which tests are affected"
-    echo "  installhooks                 Install git hooks"
-    echo "  validatecommit <file>        Validate commit message format"
-    echo ""
-    echo "Testing:"
-    echo "  testactivemode [--category] Run Active Mode tests"
-    echo "  e2etest                     Run E2E test suite"
-    echo ""
-    echo "Examples:"
-    echo "  mdd newtask feature \"Add dark mode\""
-    echo "  mdd checktask .claude/active/feature-x.md \"Task 1\""
-    echo "  mdd autosync"
-    echo "  mdd archive"
-    echo "  mdd validatestate"
-    echo "  mdd installhooks"
-    echo ""
-    echo "Note: You can also use full script paths: ./scripts/new-task.sh"
+    echo "Run 'mdd' without arguments to see all commands"
     exit 0
 fi
 
 CMD="$1"
 shift
-
-# Get script name
 SCRIPT=$(get_script "$CMD")
 
-# Check if command exists
 if [ -z "$SCRIPT" ]; then
     echo "❌ Error: Unknown command '$CMD'"
-    echo ""
     echo "Run 'mdd' without arguments to see available commands"
-    echo "Or use full script path: ./scripts/$CMD.sh"
     exit 1
 fi
 
 SCRIPT_PATH="$SCRIPTS_DIR/$SCRIPT"
-
-# Check if script exists
 if [ ! -f "$SCRIPT_PATH" ]; then
     echo "❌ Error: Script not found: $SCRIPT_PATH"
     exit 1
 fi
 
-# Check if script is executable
-if [ ! -x "$SCRIPT_PATH" ]; then
-    echo "⚠️  Warning: Script not executable, making it executable..."
-    chmod +x "$SCRIPT_PATH"
-fi
-
-# Execute script with remaining arguments
+[ ! -x "$SCRIPT_PATH" ] && chmod +x "$SCRIPT_PATH"
 exec "$SCRIPT_PATH" "$@"
+MDD_EOF

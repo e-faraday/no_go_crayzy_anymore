@@ -422,6 +422,94 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📋 Changelog
 
+### [3.0.0] - 2026-01-24
+
+#### 🎉 Major Release: Version Compatibility & Global Scripts Architecture
+
+This release introduces automatic version compatibility checking and a global scripts architecture that makes MDD projects more portable and prevents data corruption from version mismatches.
+
+#### ✨ Added
+
+**Version Compatibility System:**
+- Automatic version tracking via `.claude/.mdd-version` file
+- `check-mdd-version.sh` script for compatibility validation
+- **BLOCKING** behavior for major version mismatches (prevents data corruption)
+- Override option: `MDD_SKIP_VERSION_CHECK=1` for emergency situations
+- Clear error messages for backward and forward incompatibility scenarios
+- Automatic version detection from git tags, branches, or VERSION file
+
+**Global Scripts Architecture:**
+- Scripts now installed globally to `~/.mdd/scripts/` (one-time setup)
+- Projects only contain `.claude/` state directory (fully portable)
+- `mdd` wrapper script automatically uses global scripts
+- Backward compatibility: Still supports project-local scripts if needed
+
+**Enhanced mdd Wrapper:**
+- Automatic version check before every command (except `setup`)
+- Color-coded error messages (RED for blocking, YELLOW for warnings)
+- Improved error handling and user guidance
+
+**Documentation:**
+- Complete version compatibility rules and examples
+- Version file mechanism explanation
+- Migration guidance for version upgrades
+
+#### 🔧 Changed
+
+- **`setup.sh`**: Now creates `.claude/.mdd-version` file automatically
+- **`mdd` wrapper**: Integrated version compatibility checking
+- **Project structure**: Scripts moved to global location (`~/.mdd/scripts/`)
+- **README.md**: Added comprehensive version compatibility documentation
+
+#### 🐛 Fixed
+
+- Version detection now works correctly from git tags, branches, and VERSION file
+- Version comparison logic handles edge cases (missing files, invalid versions)
+- Error messages now properly distinguish between backward and forward incompatibility
+
+#### 📊 Statistics
+
+- **New Scripts**: 1 (`check-mdd-version.sh`)
+- **New Files**: `.claude/.mdd-version` (auto-created per project)
+- **Breaking Changes**: Major version mismatches now block execution
+- **Migration Required**: v2.0.0 projects should migrate (see guide below)
+
+#### 🚀 Migration Guide
+
+If upgrading from v2.0.0:
+
+1. **Install Global Scripts** (one-time):
+   ```bash
+   git clone -b v3.0.0 https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
+   ```
+
+2. **Update Existing Projects**:
+   ```bash
+   cd your-project
+   # Run setup to create version file
+   ~/.mdd/scripts/setup.sh
+   # This creates .claude/.mdd-version with "v3.0.0"
+   ```
+
+3. **Verify Version Compatibility**:
+   ```bash
+   # Test version check (should pass)
+   mdd newtask feature "Test"
+   ```
+
+4. **Remove Old Project Scripts** (optional):
+   ```bash
+   # Scripts are now global, project scripts can be removed
+   rm -rf scripts/
+   ```
+
+**Important Notes:**
+- v3.0.0 projects **MUST NOT** be used with v2.0.0 scripts (backward incompatible)
+- v2.0.0 projects can work with v3.0.0 scripts (forward compatible, but migration recommended)
+- If you encounter version mismatch errors, use `MDD_SKIP_VERSION_CHECK=1` only in emergencies
+
+---
+
 ### [2.0.0] - 2026-01-22
 
 #### 🎉 Major Release: Gold Standard Implementation

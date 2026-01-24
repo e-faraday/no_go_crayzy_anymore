@@ -6,6 +6,8 @@ set -e
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # Get script directory and project root
@@ -27,6 +29,40 @@ mkdir -p .claude/decisions
 touch .claude/active/.gitkeep
 touch .claude/completed/.gitkeep
 touch .claude/decisions/.gitkeep
+
+# Create version file to track MDD version compatibility
+echo "Creating MDD version file..."
+MDD_VERSION_FILE=".claude/.mdd-version"
+
+# Try to detect MDD version from git branch/tag or use default
+if [ -d "$SCRIPT_DIR/../.git" ]; then
+    # Try to get version from git branch or tag
+    GIT_BRANCH=$(cd "$SCRIPT_DIR/.." && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    GIT_TAG=$(cd "$SCRIPT_DIR/.." && git describe --tags --exact-match HEAD 2>/dev/null || echo "")
+    
+    if [ -n "$GIT_TAG" ]; then
+        MDD_VERSION="$GIT_TAG"
+    elif [[ "$GIT_BRANCH" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        MDD_VERSION="$GIT_BRANCH"
+    elif [[ "$GIT_BRANCH" =~ v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+        MDD_VERSION="v${BASH_REMATCH[1]}"
+    else
+        # Default to v3.0.0 if can't detect
+        MDD_VERSION="v3.0.0"
+    fi
+else
+    # Not in git repo, try to read from VERSION file if exists
+    if [ -f "$SCRIPT_DIR/../VERSION" ]; then
+        MDD_VERSION=$(cat "$SCRIPT_DIR/../VERSION" | tr -d ' \n')
+    else
+        # Default version
+        MDD_VERSION="v3.0.0"
+    fi
+fi
+
+# Write version to file
+echo "$MDD_VERSION" > "$MDD_VERSION_FILE"
+echo -e "${GREEN}✅ MDD version file created: $MDD_VERSION${NC}"
 
 echo -e "${GREEN}✅ Directory structure created${NC}"
 echo ""
@@ -92,6 +128,13 @@ else
 # mdd - MDD Script Wrapper (Bash + Zsh compatible)
 # Usage: mdd <command> [args...]
 
+# Color codes for output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
 # Get script directory (bash + zsh compatible, handles symlinks)
 if [[ -n "$ZSH_VERSION" ]]; then
     # Zsh - resolve symlink if needed
@@ -148,6 +191,28 @@ else
     echo "Global scripts location: $GLOBAL_SCRIPTS_DIR"
     echo "Project scripts location: $PROJECT_SCRIPTS_DIR"
     exit 1
+fi
+
+# Check version compatibility (skip for setup command and if override is set)
+if [ "$1" != "setup" ] && [ -d ".claude" ] && [ "$MDD_SKIP_VERSION_CHECK" != "1" ]; then
+    if [ -f "$SCRIPTS_DIR/check-mdd-version.sh" ]; then
+        # Run version check script
+        VERSION_CHECK_OUTPUT=$("$SCRIPTS_DIR/check-mdd-version.sh" 2>&1)
+        VERSION_CHECK_EXIT=$?
+        
+        # Always show output
+        echo "$VERSION_CHECK_OUTPUT" >&2
+        
+        # Exit 1 = Major version mismatch - BLOCKING (stop execution)
+        if [ $VERSION_CHECK_EXIT -eq 1 ]; then
+            echo "" >&2
+            echo -e "${RED}❌ Command stopped: Major version incompatibility detected.${NC}" >&2
+            echo -e "${YELLOW}Override: MDD_SKIP_VERSION_CHECK=1 mdd <command>${NC}" >&2
+            exit 1
+        fi
+        # Exit 2 = Version file missing - Non-blocking (continue)
+        # Exit 0 = Compatible - Continue normally
+    fi
 fi
 
 get_script() {

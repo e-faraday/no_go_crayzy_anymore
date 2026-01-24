@@ -109,58 +109,58 @@ SCRIPT_MAJOR=$(echo "$SCRIPT_VERSION_NORM" | cut -d. -f1)
 # Check compatibility
 if [ "$PROJECT_MAJOR" != "$SCRIPT_MAJOR" ]; then
     # Major version mismatch - incompatible
-    echo -e "${RED}⚠️  MDD Version Uyumsuzluğu Tespit Edildi!${NC}" >&2
+    echo -e "${RED}⚠️  MDD Version Incompatibility Detected!${NC}" >&2
     echo "" >&2
-    echo -e "${YELLOW}Proje MDD Versiyonu:${NC} $PROJECT_VERSION" >&2
-    echo -e "${YELLOW}Script MDD Versiyonu:${NC} $SCRIPT_VERSION" >&2
+    echo -e "${YELLOW}Project MDD Version:${NC} $PROJECT_VERSION" >&2
+    echo -e "${YELLOW}Script MDD Version:${NC} $SCRIPT_VERSION" >&2
     echo "" >&2
     
     # Determine if project is newer or older than scripts
     if [ "$PROJECT_MAJOR" -gt "$SCRIPT_MAJOR" ]; then
         # Project is newer (e.g., v3.0.0 project with v2.0.0 scripts)
-        echo -e "${RED}Bu proje $PROJECT_VERSION ile oluşturulmuş, ancak $SCRIPT_VERSION script'leri kullanılıyor.${NC}" >&2
+        echo -e "${RED}This project was created with $PROJECT_VERSION, but $SCRIPT_VERSION scripts are being used.${NC}" >&2
         echo "" >&2
-        echo -e "${YELLOW}⚠️  Geriye Dönük Uyumsuzluk (Backward Incompatibility):${NC}" >&2
-        echo "  v$PROJECT_MAJOR projeleri v$SCRIPT_MAJOR script'leri ile tam uyumlu DEĞİLDİR." >&2
-        echo "  v$PROJECT_MAJOR'da eklenen özellikler v$SCRIPT_MAJOR script'lerinde bulunmayabilir." >&2
-        echo "  Bazı komutlar çalışmayabilir veya beklenmeyen davranışlar gösterebilir." >&2
+        echo -e "${YELLOW}⚠️  Backward Incompatibility:${NC}" >&2
+        echo "  v$PROJECT_MAJOR projects are NOT fully compatible with v$SCRIPT_MAJOR scripts." >&2
+        echo "  Features added in v$PROJECT_MAJOR may not be available in v$SCRIPT_MAJOR scripts." >&2
+        echo "  Some commands may fail or show unexpected behavior." >&2
         echo "" >&2
-        echo -e "${BLUE}Önerilen Çözümler:${NC}" >&2
-        echo "  1. $PROJECT_VERSION script'lerini kullanın (ÖNERİLEN):" >&2
+        echo -e "${BLUE}Recommended Solutions:${NC}" >&2
+        echo "  1. Use $PROJECT_VERSION scripts (RECOMMENDED):" >&2
         echo "     git clone -b $PROJECT_VERSION https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd" >&2
-        echo "  2. Veya projeyi $SCRIPT_VERSION ile uyumlu hale getirmek için migration yapın" >&2
+        echo "  2. Or migrate the project to be compatible with $SCRIPT_VERSION" >&2
     else
         # Project is older (e.g., v2.0.0 project with v3.0.0 scripts)
-        # Yeni script eski versiyon dosyalar ile uyumlu değil - block yap
-        echo -e "${RED}⚠️  Yeni Script Versiyonu Eski Proje Versiyonu ile Uyumlu Değil!${NC}" >&2
+        # New script version is not compatible with old project version - block
+        echo -e "${RED}⚠️  New Script Version Not Compatible with Old Project Version!${NC}" >&2
         echo "" >&2
-        echo -e "${YELLOW}Proje MDD Versiyonu:${NC} $PROJECT_VERSION (eski)" >&2
-        echo -e "${YELLOW}Script MDD Versiyonu:${NC} $SCRIPT_VERSION (yeni)" >&2
+        echo -e "${YELLOW}Project MDD Version:${NC} $PROJECT_VERSION (old)" >&2
+        echo -e "${YELLOW}Script MDD Version:${NC} $SCRIPT_VERSION (new)" >&2
         echo "" >&2
-        echo -e "${RED}Bu proje $PROJECT_VERSION ile oluşturulmuş, ancak $SCRIPT_VERSION script'leri yüklü.${NC}" >&2
+        echo -e "${RED}This project was created with $PROJECT_VERSION, but $SCRIPT_VERSION scripts are installed.${NC}" >&2
         echo "" >&2
-        echo -e "${YELLOW}⚠️  İleriye Dönük Uyumsuzluk (Forward Incompatibility):${NC}" >&2
-        echo "  Yeni script versiyonu ($SCRIPT_VERSION) eski proje versiyonu ($PROJECT_VERSION) ile uyumlu değil." >&2
-        echo "  Veri bozulması veya beklenmeyen davranışlar olabilir." >&2
+        echo -e "${YELLOW}⚠️  Forward Incompatibility:${NC}" >&2
+        echo "  New script version ($SCRIPT_VERSION) is not compatible with old project version ($PROJECT_VERSION)." >&2
+        echo "  Data corruption or unexpected behavior may occur." >&2
         echo "" >&2
-        echo -e "${BLUE}Çözüm: Yeni Versiyonu Silip Eski Versiyonu Yükleyin${NC}" >&2
+        echo -e "${BLUE}Solution: Remove New Version and Install Old Version${NC}" >&2
         echo "" >&2
-        echo "  1. Yeni versiyonu silin:" >&2
+        echo "  1. Remove the new version:" >&2
         echo "     rm -rf ~/.mdd" >&2
         echo "" >&2
-        echo "  2. Eski versiyonu yükleyin:" >&2
+        echo "  2. Install the old version:" >&2
         echo "     git clone -b $PROJECT_VERSION https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd" >&2
         echo "" >&2
-        echo -e "${YELLOW}Alternatif:${NC} Projeyi $SCRIPT_VERSION ile uyumlu hale getirmek için migration yapın" >&2
+        echo -e "${YELLOW}Alternative:${NC} Migrate the project to be compatible with $SCRIPT_VERSION" >&2
     fi
     echo "" >&2
-    echo -e "${YELLOW}Not:${NC} Farklı major versiyonlar arasında uyumsuzluk olabilir." >&2
+    echo -e "${YELLOW}Note:${NC} Incompatibility may exist between different major versions." >&2
     exit 1
 elif [ "$COMPARISON" = "older" ]; then
     # Project is older but same major version - warning but compatible
-    echo -e "${YELLOW}ℹ️  MDD Versiyon Bilgisi:${NC}" >&2
-    echo -e "  Proje: $PROJECT_VERSION, Script: $SCRIPT_VERSION" >&2
-    echo -e "${BLUE}  Aynı major versiyon - uyumlu, ancak yeni özellikler kullanılabilir.${NC}" >&2
+    echo -e "${YELLOW}ℹ️  MDD Version Information:${NC}" >&2
+    echo -e "  Project: $PROJECT_VERSION, Script: $SCRIPT_VERSION" >&2
+    echo -e "${BLUE}  Same major version - compatible, but new features may be available.${NC}" >&2
     exit 0
 else
     # Same or newer - compatible

@@ -20,6 +20,95 @@ main          # Main branch (stable) v2.0.0
 - **main (v2.0.0)**: Stable production version
 - **v3.0.0**: Development branch for next major release
 
+### 🔄 Version Compatibility
+
+MDD automatically tracks version compatibility between your project and the installed scripts. When you set up a project with `setup.sh`, it creates a `.claude/.mdd-version` file that records the MDD version used.
+
+**Important:** If you move a project created with v3.0.0 to a new machine and install v4.0.0 scripts, MDD will detect the version mismatch and **block execution** to prevent data corruption:
+
+```
+⚠️  MDD Version Incompatibility Detected!
+
+Project MDD Version: v3.0.0
+Script MDD Version: v4.0.0
+
+This project was created with v3.0.0, but v4.0.0 scripts are being used.
+
+⚠️  Backward Incompatibility:
+  v3 projects are NOT fully compatible with v2 scripts.
+  v3 features may not be available in v2 scripts.
+  Some commands may fail or show unexpected behavior.
+
+Recommended Solutions:
+  1. Use v3.0.0 scripts (RECOMMENDED):
+     git clone -b v3.0.0 https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
+  2. Or migrate the project to be compatible with v4.0.0
+
+❌ Command stopped: Major version incompatibility detected.
+Override: MDD_SKIP_VERSION_CHECK=1 mdd <command>
+```
+
+**Version Compatibility Rules:**
+- ✅ **Same major version** (e.g., v3.0.0 ↔ v3.1.0): Compatible, minor warnings may appear
+- ⚠️ **Different major versions** (e.g., v3.0.0 ↔ v4.0.0): **BLOCKING** - Command execution stops to prevent data corruption
+- ❌ **Backward incompatibility** (e.g., v3.0.0 project with v2.0.0 scripts): **NOT compatible** - v3.0.0 features won't work with v2.0.0 scripts
+- ⚠️ **Forward incompatibility** (e.g., v2.0.0 project with v3.0.0 scripts): May work but some v3.0.0 features won't be available
+- ℹ️ **No version file**: New projects or projects created before version tracking was added (non-blocking warning)
+
+**Important Notes:**
+- **v3.0.0 projects MUST NOT be used with v2.0.0 scripts**: v3.0.0 features don't exist in v2.0.0
+- **v2.0.0 projects can work with v3.0.0 scripts**: But migration is recommended
+- **Override option**: Use `MDD_SKIP_VERSION_CHECK=1` to bypass version check in emergency situations
+
+#### 📄 Version File Mechanism
+
+The `.claude/.mdd-version` file is the core of MDD's version tracking system:
+
+**1. Creation:**
+- Automatically created when you run `mdd setup` or `setup.sh`
+- Version is detected from:
+  1. Git tag (if MDD repo is on a tagged commit)
+  2. Git branch name (if branch matches version pattern like `v3.0.0`)
+  3. `VERSION` file in MDD repo (if git is not available)
+  4. Default: `v3.0.0` (if none of the above)
+
+**2. Location:**
+```
+your-project/
+└── .claude/
+    └── .mdd-version  ← Contains: "v3.0.0"
+```
+
+**3. Usage:**
+- Every `mdd` command automatically checks version compatibility
+- Compares project version (from `.claude/.mdd-version`) with script version (from `~/.mdd/scripts/` git repo)
+- **Major version mismatch** → **BLOCKING** (command stops)
+- **Minor/patch mismatch** → Warning (command continues)
+- **No version file** → Warning (command continues, assumes new project)
+
+**4. Example Flow:**
+```bash
+# 1. Setup new project
+cd my-project
+mdd setup
+# → Creates .claude/.mdd-version with "v3.0.0"
+
+# 2. Move project to another machine
+# (copy .claude/ directory)
+
+# 3. New machine has v4.0.0 scripts installed
+mdd newtask feature "Test"
+# → ⚠️  Version incompatibility detected!
+# → ❌ Command stopped: Major version incompatibility
+# → Solution: Install v3.0.0 scripts or migrate project
+```
+
+**5. Why It Matters:**
+- **Data Integrity**: Prevents data corruption from version mismatches
+- **Feature Compatibility**: Ensures features exist in the script version
+- **Portability**: Projects can be safely moved between machines
+- **Migration Guidance**: Helps users identify when migration is needed
+
 ---
 
 ## 🎯 Overview
@@ -71,18 +160,16 @@ The `setup.sh` script will:
 
 ### Installation (For Existing MDD Projects)
 
-If you already have MDD set up in your project:
+If you already have MDD set up in your project, you can use the global scripts directly:
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/e-faraday/no_go_crayzy_anymore.git mdd
-   cd mdd
-   ```
+```bash
+# Make sure global scripts are installed
+# (setup.sh does this automatically, or install manually:)
+# git clone https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
 
-2. **Create your first task:**
-   ```bash
-   ./scripts/new-task.sh feature "Your First Feature"
-   ```
+# Create your first task
+mdd newtask feature "Your First Feature"
+```
 
 ### Basic Workflow
 
@@ -330,6 +417,112 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## 📋 Changelog
+
+### [2.0.0] - 2026-01-22
+
+#### 🎉 Major Release: Gold Standard Implementation
+
+This release introduces comprehensive testing, validation, and automation features that bring MDD to production-ready quality.
+
+#### ✨ Added
+
+**Gold Standard Features:**
+- Git Hooks Integration (pre-commit, commit-msg)
+- Environment Parity verification
+- Conventional Commits enforcement
+- Affected Tests Detection
+
+**Comprehensive Testing:**
+- E2E Test Suite (50 tests, all passing ✅)
+- Active Mode Test Suite (41 tests, all passing ✅)
+- Test Fixtures (8 comprehensive fixtures)
+
+**CI/CD Integration:**
+- 4 GitHub Actions workflows
+- Scheduled daily tests (2 AM UTC)
+- Automatic rollback on main failure
+
+**Enhanced mdd Wrapper:**
+- New Gold Standard commands (validatestate, verifyenvparity, detectaffectedtests, installhooks, validatecommit)
+- New testing commands (testactivemode, e2etest)
+
+**Documentation:**
+- Complete Gold Standard guide
+- Hook installation guide
+- Comprehensive test documentation
+
+**Cursor Rules:**
+- State tracking enforcement
+- Fresh Chat integration
+- Enhanced memory management
+
+#### 🔧 Changed
+
+- `validate-state.sh`: Now checks staged changes when run as pre-commit hook
+- `e2e-test.sh`: Extended with 34 new tests (from 14 to 50 total)
+- `README.md`: Updated with Gold Standard features and new commands
+- `mdd wrapper`: Enhanced with new command mappings and help text
+
+#### 🐛 Fixed
+
+- Pre-commit hook now correctly validates staged changes
+- Script detection in e2e tests now uses `$PROJECT_ROOT` for reliability
+- Test output parsing fixed
+- Workflow tests now properly copy template files
+
+#### 📊 Statistics
+
+- **Total Tests**: 91 (50 E2E + 41 Active Mode)
+- **Test Pass Rate**: 100% ✅
+- **New Scripts**: 6 (validation, hooks, testing)
+- **New Documentation**: 5+ files
+- **CI/CD Workflows**: 4 workflows
+
+#### 🚀 Migration Guide
+
+If upgrading from v1.0.0:
+
+1. **Install Git Hooks** (recommended):
+   ```bash
+   ./mdd installhooks
+   ```
+
+2. **Verify Environment Parity**:
+   ```bash
+   ./mdd verifyenvparity
+   ```
+
+3. **Run Tests** to verify everything works:
+   ```bash
+   ./mdd e2etest
+   ./mdd testactivemode
+   ```
+
+---
+
+### [1.0.0] - 2026-01-17
+
+#### Initial Release
+
+- Core MDD workflow scripts
+- Basic task management (create, check, archive)
+- Bootstrap and Active Mode support
+- Basic documentation
+- Feature templates (feature, bug, refactor, decision)
+- Progress tracking and checkpoint system
+- Agent definitions (mdd-executor)
+- Cursor rules for memory management
+
+**Key Features:**
+- Markdown-driven task management
+- State persistence across sessions
+- Automatic mode detection (Bootstrap vs Active)
+- Checkpoint system for human verification
+- Template-based feature creation
 
 ---
 

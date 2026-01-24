@@ -1,591 +1,258 @@
 # No Go Crayzy Anymore
 
-> **Markdown Driven Development Framework for Vibe Coding**  
-> A lightweight, spec-driven workflow for building with AI — designed to prevent context rot by keeping implementation work in tact contexts.
+> **Markdown Driven Development Framework for Vibe Coding**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/e-faraday/no_go_crayzy_anymore)
 
 ---
 
-## 📋 Branch Structure
-
-```
-main          # Main branch (stable) v3.0.0
-```
-
-### Version Information
-
-- **main (v3.0.0)**: Current stable version with version compatibility system
-
-### 🔄 Version Compatibility
-
-MDD automatically tracks version compatibility between your project and the installed scripts. When you set up a project with `setup.sh`, it creates a `.claude/.mdd-version` file that records the MDD version used.
-
-**Important:** If you move a project created with v3.0.0 to a new machine and install v4.0.0 scripts, MDD will detect the version mismatch and **block execution** to prevent data corruption:
-
-```
-⚠️  MDD Version Incompatibility Detected!
-
-Project MDD Version: v3.0.0
-Script MDD Version: v4.0.0
-
-This project was created with v3.0.0, but v4.0.0 scripts are being used.
-
-⚠️  Backward Incompatibility:
-  v3 projects are NOT fully compatible with v2 scripts.
-  v3 features may not be available in v2 scripts.
-  Some commands may fail or show unexpected behavior.
-
-Recommended Solutions:
-  1. Use v3.0.0 scripts (RECOMMENDED):
-     git clone -b v3.0.0 https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
-  2. Or migrate the project to be compatible with v4.0.0
-
-❌ Command stopped: Major version incompatibility detected.
-Override: MDD_SKIP_VERSION_CHECK=1 mdd <command>
-```
-
-**Version Compatibility Rules:**
-- ✅ **Same major version** (e.g., v3.0.0 ↔ v3.1.0): Compatible, minor warnings may appear
-- ⚠️ **Different major versions** (e.g., v3.0.0 ↔ v4.0.0): **BLOCKING** - Command execution stops to prevent data corruption
-- ❌ **Backward incompatibility** (e.g., v3.0.0 project with v2.0.0 scripts): **NOT compatible** - v3.0.0 features won't work with v2.0.0 scripts
-- ⚠️ **Forward incompatibility** (e.g., v2.0.0 project with v3.0.0 scripts): May work but some v3.0.0 features won't be available
-- ℹ️ **No version file**: New projects or projects created before version tracking was added (non-blocking warning)
-
-**Important Notes:**
-- **v3.0.0 projects MUST NOT be used with v2.0.0 scripts**: v3.0.0 features don't exist in v2.0.0
-- **v2.0.0 projects can work with v3.0.0 scripts**: But migration is recommended
-- **Override option**: Use `MDD_SKIP_VERSION_CHECK=1` to bypass version check in emergency situations
-
-#### 📄 Version File Mechanism
-
-The `.claude/.mdd-version` file is the core of MDD's version tracking system:
-
-**1. Creation:**
-- Automatically created when you run `mdd setup` or `setup.sh`
-- Version is detected from:
-  1. Git tag (if MDD repo is on a tagged commit)
-  2. Git branch name (if branch matches version pattern like `v3.0.0`)
-  3. `VERSION` file in MDD repo (if git is not available)
-  4. Default: `v3.0.0` (if none of the above)
-
-**2. Location:**
-```
-your-project/
-└── .claude/
-    └── .mdd-version  ← Contains: "v3.0.0"
-```
-
-**3. Usage:**
-- Every `mdd` command automatically checks version compatibility
-- Compares project version (from `.claude/.mdd-version`) with script version (from `~/.mdd/scripts/` git repo)
-- **Major version mismatch** → **BLOCKING** (command stops)
-- **Minor/patch mismatch** → Warning (command continues)
-- **No version file** → Warning (command continues, assumes new project)
-
-**4. Example Flow:**
-```bash
-# 1. Setup new project
-cd my-project
-mdd setup
-# → Creates .claude/.mdd-version with "v3.0.0"
-
-# 2. Move project to another machine
-# (copy .claude/ directory)
-
-# 3. New machine has v4.0.0 scripts installed
-mdd newtask feature "Test"
-# → ⚠️  Version incompatibility detected!
-# → ❌ Command stopped: Major version incompatibility
-# → Solution: Install v3.0.0 scripts or migrate project
-```
-
-**5. Why It Matters:**
-- **Data Integrity**: Prevents data corruption from version mismatches
-- **Feature Compatibility**: Ensures features exist in the script version
-- **Portability**: Projects can be safely moved between machines
-- **Migration Guidance**: Helps users identify when migration is needed
-
----
-
-## 🎯 Overview
+## What is MDD?
 
 **Stop managing chats. Start managing workflows.**
 
-MDD (Markdown Driven Development) is a framework that helps you maintain context and continuity when working with AI coding assistants like Cursor. It prevents context rot by keeping all implementation work in structured markdown files that persist across sessions.
+MDD (Markdown Driven Development) is a framework that helps you maintain context and continuity when working with AI coding assistants like Cursor. It solves the **context rot problem** - where AI assistants lose track of what you're building across chat sessions.
 
-### Key Features
+### The Problem
 
-- ✅ **State Tracking**: Automatic state management across chat sessions
-- ✅ **Bootstrap & Active Modes**: Automatic mode detection based on project state
-- ✅ **Checkpoint System**: Human verification, decisions, and action points
-- ✅ **Automation Scripts**: Complete workflow automation
-- ✅ **CI/CD Integration**: Gold standard testing and validation
-- ✅ **Pre-commit Hooks**: Automatic state validation
+When working with AI coding assistants:
+- Context gets lost between chat sessions
+- You repeat the same explanations over and over
+- Progress tracking is manual and error-prone
+- No single source of truth for project state
+
+### The Solution
+
+MDD keeps all implementation work in **structured markdown files** that persist across sessions:
+
+- **State Tracking**: Automatic state management across chat sessions
+- **Mode Detection**: Bootstrap (new project) vs Active (existing features) modes
+- **Checkpoint System**: Human verification, decisions, and action points
+- **Automation Scripts**: Complete workflow automation via `mdd` commands
+- **Version Compatibility**: Prevents data corruption when moving projects between machines
+
+### Core Workflow
+
+```
+1. Create a feature task     →  mdd newtask feature "Add dark mode"
+2. Work on implementation    →  AI assistant reads state from .claude/active/
+3. Update progress           →  mdd updateprogress <file> "Added toggle"
+4. Complete and archive      →  mdd checktask <file> && mdd archive
+```
+
+All state is stored in `.claude/` directory, making projects portable.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### For New Projects (First Time Setup)
-
-**Important:** If you're setting up MDD in a **new project**, follow these steps:
+### Installation
 
 ```bash
-# 1. Create your new project directory
-mkdir ~/Projects/my-new-project
-cd ~/Projects/my-new-project
-
-# 2. Run setup script from MDD repository
-# Option A: If you have MDD repository cloned locally
-path/to/mdd/scripts/setup.sh
-
-# Option B: Clone MDD repository first, then run setup
-git clone https://github.com/e-faraday/no_go_crayzy_anymore.git /tmp/mdd
-cd ~/Projects/my-new-project
-/tmp/mdd/scripts/setup.sh
+# Clone MDD to your home directory (one-time setup)
+git clone https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
 ```
 
-The `setup.sh` script will:
-- ✅ Create directory structure (`.claude/` only - scripts are global)
-- ✅ Install global scripts to `~/.mdd/scripts/` (one-time setup)
-- ✅ Copy templates to `.claude/templates/`
-- ✅ Create `mdd` wrapper script in project root
-- ✅ Set up global `mdd` command (optional)
-
-**Important:** Scripts are now **global** (`~/.mdd/scripts/`). Only state files (`.claude/`) are stored in your project. This makes projects more portable - you only need to copy `.claude/` when moving projects.
-
-### Installation (For Existing MDD Projects)
-
-If you already have MDD set up in your project, you can use the global scripts directly:
+### Setup New Project
 
 ```bash
-# Make sure global scripts are installed
-# (setup.sh does this automatically, or install manually:)
-# git clone https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
+# Navigate to your project
+cd ~/Projects/my-project
 
-# Create your first task
-mdd newtask feature "Your First Feature"
+# Run setup
+~/.mdd/scripts/setup.sh
 ```
 
-### Basic Workflow
+This creates:
+- `.claude/` directory structure (state files)
+- `.claude/.mdd-version` (version tracking)
+- `mdd` wrapper script in project root
+
+### Basic Usage
 
 ```bash
-# Create a new feature (uses global scripts)
-mdd newtask feature "Add dark mode"
+# Create a new feature
+mdd newtask feature "Add user authentication"
 
 # Start working on it
-mdd starttask .claude/active/add-dark-mode.md "Started implementation"
+mdd starttask .claude/active/add-user-authentication.md "Started"
 
-# Update progress
-mdd updateprogress .claude/active/add-dark-mode.md "Added theme toggle component"
+# Update progress as you work
+mdd updateprogress .claude/active/add-user-authentication.md "Added login form"
 
 # Mark as complete
-mdd checktask .claude/active/add-dark-mode.md "Dark mode feature"
+mdd checktask .claude/active/add-user-authentication.md "Auth complete"
 
 # Archive completed tasks
 mdd archive
 ```
 
-**Note:** You can also use full script paths if needed: `~/.mdd/scripts/new-task.sh feature "Name"`
+Run `mdd` without arguments to see all available commands.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ### In Your Project (Portable State)
 ```
 your-project/
+├── mdd                      # Wrapper script
 └── .claude/
-    ├── active/          # Active feature markdown files (state)
-    ├── completed/       # Archived/completed features (state)
-    ├── templates/       # Feature templates
-    ├── decisions/       # Decision records (state)
-    └── agents/          # Agent definitions (e.g. mdd-executor)
+    ├── .mdd-version         # Version tracking (v3.0.0)
+    ├── active/              # Active feature files
+    ├── completed/           # Archived features
+    ├── templates/           # Feature templates
+    ├── decisions/           # Decision records
+    └── agents/              # Agent definitions
 ```
 
-### Global (Shared Across All Projects)
+### Global Scripts (Shared)
 ```
 ~/.mdd/
-├── scripts/             # Automation scripts (global)
-└── mdd                  # Wrapper script (optional, can be in ~/bin/)
+├── scripts/                 # All automation scripts
+└── mdd                      # Global wrapper (optional)
 ```
 
-**Key Point:** Only `.claude/` is in your project. Scripts are global, making projects portable - just copy `.claude/` when moving projects!
+**Key Point:** Only `.claude/` is in your project. Scripts are global, making projects portable.
 
 ---
 
-## 🔄 Bootstrap vs Active Mode
+## Bootstrap vs Active Mode
 
-MDD automatically detects your project state and adjusts behavior accordingly.
+MDD automatically detects your project state:
 
-### Mode Detection
+| Mode | Condition | Behavior |
+|------|-----------|----------|
+| **Bootstrap** | No files in `.claude/active/` | State tracking NOT required |
+| **Active** | Files exist in `.claude/active/` | State tracking MANDATORY |
 
-```bash
-ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l
-# Output: 0 = Bootstrap, >0 = Active
-```
-
-### Bootstrap Mode (New Project)
-
-**When:** No active features exist
-
-**Behavior:**
-- ✅ State tracking **NOT required** (no state exists yet)
-- ✅ OK to make code changes without state updates
-- ✅ OK to commit without validation
-- ✅ OK to create first feature
-
-### Active Mode (Existing Project)
-
-**When:** Active features exist in `.claude/active/`
-
-**Behavior:**
-- ✅ State tracking **MANDATORY**
-- ✅ Every code change must update state file
-- ✅ Fresh Chat auto-loads current state
-- ✅ Pre-commit hook validates state updates
-
-**State update required:**
-```bash
-# After code changes, update state
-./scripts/auto-sync.sh .claude/active/your-feature.md
-```
-
-**Validation:**
-```bash
-# Check if state is up to date
-./scripts/validate-state.sh
-```
+In **Active Mode**, every code change should update the corresponding state file.
 
 ---
 
-## 🛠️ Automation Tools
+## Available Commands
 
-### Method 1: `mdd` Wrapper (Shorter Commands)
-
-```bash
-# Core workflow
-mdd newtask feature "Add dark mode"
-mdd checktask <file> "Task name"
-mdd updateprogress <file> "Progress message"
-mdd starttask <file> "Started message"
-mdd archive
-
-# Automation
-mdd autosync
-mdd autocompletetask <file>
-mdd autocompletephases <file>
-mdd autoupdatestatus <file>
-
-# Utilities
-mdd setpriority <file> high
-mdd addtags <file> frontend ui
-mdd dailysummary
-mdd syncall
-```
-
-### Method 2: Full Script Paths (Always Works)
-
-```bash
-# Core workflow
-./scripts/new-task.sh feature "Add dark mode"
-./scripts/check-task.sh <file> "Task name"
-./scripts/update-progress.sh <file> "Progress message"
-./scripts/start-task.sh <file> "Started message"
-./scripts/archive-completed.sh
-
-# Automation
-./scripts/auto-sync.sh
-./scripts/auto-complete-task.sh <file>
-./scripts/auto-complete-phases.sh <file>
-./scripts/auto-update-status.sh <file>
-
-# Utilities
-./scripts/set-priority.sh <file> high
-./scripts/add-tags.sh <file> frontend ui
-./scripts/daily-summary.sh
-./scripts/sync-all-tasks.sh
-```
-
-### Available Commands
-
-| Task            | mdd Command                     | Full Script Path                          |
-| --------------- | ------------------------------- | ----------------------------------------- |
-| Create task     | `mdd newtask feature "Name"`    | `./scripts/new-task.sh feature "Name"`    |
-| Check task      | `mdd checktask <file> "Task"`   | `./scripts/check-task.sh <file> "Task"`   |
-| Update progress | `mdd updateprogress <file>`     | `./scripts/update-progress.sh <file>`      |
-| Start task      | `mdd starttask <file>`          | `./scripts/start-task.sh <file>`           |
-| Archive         | `mdd archive`                   | `./scripts/archive-completed.sh`          |
-| Auto sync       | `mdd autosync`                  | `./scripts/auto-sync.sh`                  |
-| Daily summary   | `mdd dailysummary`              | `./scripts/daily-summary.sh`              |
-| Set priority    | `mdd setpriority <file> high`   | `./scripts/set-priority.sh <file> high`   |
-| Add tags        | `mdd addtags <file> tag1 tag2`  | `./scripts/add-tags.sh <file> tag1 tag2`  |
-
-Run `mdd` without arguments to see all available commands.
-
-### 🤖 Auto-commit (Optional)
-
-| Task                 | mdd Command                  | Full Script Path                        |
-| -------------------- | ---------------------------- | --------------------------------------- |
-| Commit after task    | `mdd autocommittask <file>`  | `./scripts/auto-commit-task.sh <file>`  |
-| Commit after plan    | `mdd autocommitplan <file>`  | `./scripts/auto-commit-plan.sh <file>`  |
-| Commit after feature | `mdd autocommitfeature`      | `./scripts/auto-commit-feature.sh`      |
+| Command | Description |
+|---------|-------------|
+| `mdd newtask <type> "name"` | Create new task (feature, bug, refactor) |
+| `mdd starttask <file>` | Start working on a task |
+| `mdd updateprogress <file> "msg"` | Update progress |
+| `mdd checktask <file>` | Mark task complete |
+| `mdd archive` | Archive completed tasks |
+| `mdd autosync` | Auto-sync all state |
+| `mdd dailysummary` | Show daily summary |
+| `mdd validatestate` | Validate state integrity |
+| `mdd e2etest` | Run E2E tests |
 
 ---
 
-## 🎯 Checkpoints
+## Version Compatibility (v3.0.0)
 
-MDD supports these checkpoint types:
+MDD tracks version compatibility to prevent data corruption:
 
-- **`human-verify`**: You review/approve or report issues
-- **`decision`**: You choose an option
-- **`human-action`**: You perform a manual step (login, copy token, etc.)
+```bash
+# Version is stored in each project
+cat .claude/.mdd-version
+# → v3.0.0
+```
 
-**Important:** For `decision` and `human-action`, the **result is explicitly carried forward** in the continuation prompt so it won't get lost if execution resumes in a fresh context.
+**Rules:**
+- Same major version: Compatible
+- Different major version: **BLOCKING** (prevents execution)
+- Override: `MDD_SKIP_VERSION_CHECK=1 mdd <command>`
 
 ---
 
-## 🧪 Testing
-
-### Active Mode Test Suite
-
-Comprehensive test suite for Active Mode functionality with **41 test cases** across **10 categories**:
+## Testing
 
 ```bash
-# Run all tests
+# Run E2E tests (50 tests)
+./scripts/e2e-test.sh
+
+# Run Active Mode tests (41 tests)
 ./scripts/test-active-mode.sh --all
-
-# Run specific category
-./scripts/test-active-mode.sh --category detection
-./scripts/test-active-mode.sh --category enforcement
-./scripts/test-active-mode.sh --category validation
 ```
 
-**Test Categories:**
+---
 
-1. Active Mode Detection
-2. State Update Enforcement
-3. validate-state.sh Script Tests
-4. Pre-Commit Hook Tests
-5. Fresh Chat Auto-Load Tests
-6. auto-sync.sh Script Tests
-7. Edge Cases
-8. Integration Tests
-9. Performance Tests
-10. Error Handling
+## Documentation
 
-**CI/CD Integration:**
-
-- Tests run automatically on push/PR
-- Daily scheduled tests at 2 AM UTC
-- GitHub Actions workflows in `.github/workflows/`
-
-See `tests/README.md` for complete test documentation.
+- [Workflow Guide](mdd-template/WORKFLOW.md)
+- [Test Documentation](tests/README.md)
+- [Auto Scripts Guide](scripts/README-auto-scripts.md)
 
 ---
 
-## 📚 Documentation
-
-- `mdd-template/WORKFLOW.md` - Complete workflow guide
-- `tests/README.md` - Test suite documentation
-- `tests/TEST_PLAN_IMPLEMENTATION.md` - Test plan implementation summary
-
----
-
-## 🔐 Permissions
-
-For frictionless automation, configure `.claude/settings.json` (included in this repo) to allow common Bash/Git commands without constant approvals.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/Amazing`)
+3. Commit changes (`git commit -m 'Add Amazing'`)
+4. Push to branch (`git push origin feature/Amazing`)
+5. Open Pull Request
 
 ---
 
-## 📝 License
+## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - see LICENSE file for details.
 
 ---
 
-## 📋 Changelog
+## Changelog
 
 ### [3.0.0] - 2026-01-24
 
-#### 🎉 Major Release: Version Compatibility & Global Scripts Architecture
+#### Version Compatibility & Global Scripts Architecture
 
-This release introduces automatic version compatibility checking and a global scripts architecture that makes MDD projects more portable and prevents data corruption from version mismatches.
+**Added:**
+- Automatic version tracking via `.claude/.mdd-version`
+- `check-mdd-version.sh` for compatibility validation
+- **BLOCKING** behavior for major version mismatches
+- Override: `MDD_SKIP_VERSION_CHECK=1`
+- Global scripts architecture (`~/.mdd/scripts/`)
+- Projects now fully portable (only `.claude/` needed)
 
-#### ✨ Added
+**Changed:**
+- Scripts moved to global location
+- `setup.sh` creates version file automatically
+- `mdd` wrapper includes version checking
 
-**Version Compatibility System:**
-- Automatic version tracking via `.claude/.mdd-version` file
-- `check-mdd-version.sh` script for compatibility validation
-- **BLOCKING** behavior for major version mismatches (prevents data corruption)
-- Override option: `MDD_SKIP_VERSION_CHECK=1` for emergency situations
-- Clear error messages for backward and forward incompatibility scenarios
-- Automatic version detection from git tags, branches, or VERSION file
+**Migration from v2.0.0:**
+```bash
+# Install global scripts
+git clone https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
 
-**Global Scripts Architecture:**
-- Scripts now installed globally to `~/.mdd/scripts/` (one-time setup)
-- Projects only contain `.claude/` state directory (fully portable)
-- `mdd` wrapper script automatically uses global scripts
-- Backward compatibility: Still supports project-local scripts if needed
-
-**Enhanced mdd Wrapper:**
-- Automatic version check before every command (except `setup`)
-- Color-coded error messages (RED for blocking, YELLOW for warnings)
-- Improved error handling and user guidance
-
-**Documentation:**
-- Complete version compatibility rules and examples
-- Version file mechanism explanation
-- Migration guidance for version upgrades
-
-#### 🔧 Changed
-
-- **`setup.sh`**: Now creates `.claude/.mdd-version` file automatically
-- **`mdd` wrapper**: Integrated version compatibility checking
-- **Project structure**: Scripts moved to global location (`~/.mdd/scripts/`)
-- **README.md**: Added comprehensive version compatibility documentation
-
-#### 🐛 Fixed
-
-- Version detection now works correctly from git tags, branches, and VERSION file
-- Version comparison logic handles edge cases (missing files, invalid versions)
-- Error messages now properly distinguish between backward and forward incompatibility
-
-#### 📊 Statistics
-
-- **New Scripts**: 1 (`check-mdd-version.sh`)
-- **New Files**: `.claude/.mdd-version` (auto-created per project)
-- **Breaking Changes**: Major version mismatches now block execution
-- **Migration Required**: v2.0.0 projects should migrate (see guide below)
-
-#### 🚀 Migration Guide
-
-If upgrading from v2.0.0:
-
-1. **Install Global Scripts** (one-time):
-   ```bash
-   git clone -b v3.0.0 https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
-   ```
-
-2. **Update Existing Projects**:
-   ```bash
-   cd your-project
-   # Run setup to create version file
-   ~/.mdd/scripts/setup.sh
-   # This creates .claude/.mdd-version with "v3.0.0"
-   ```
-
-3. **Verify Version Compatibility**:
-   ```bash
-   # Test version check (should pass)
-   mdd newtask feature "Test"
-   ```
-
-4. **Remove Old Project Scripts** (optional):
-   ```bash
-   # Scripts are now global, project scripts can be removed
-   rm -rf scripts/
-   ```
-
-**Important Notes:**
-- v3.0.0 projects **MUST NOT** be used with v2.0.0 scripts (backward incompatible)
-- v2.0.0 projects can work with v3.0.0 scripts (forward compatible, but migration recommended)
-- If you encounter version mismatch errors, use `MDD_SKIP_VERSION_CHECK=1` only in emergencies
+# Update existing project
+cd your-project
+~/.mdd/scripts/setup.sh
+```
 
 ---
 
 ### [2.0.0] - 2026-01-22
 
-#### 🎉 Major Release: Gold Standard Implementation
+#### Gold Standard Implementation
 
-This release introduces comprehensive testing, validation, and automation features that bring MDD to production-ready quality.
-
-#### ✨ Added
-
-**Gold Standard Features:**
+**Added:**
 - Git Hooks Integration (pre-commit, commit-msg)
-- Environment Parity verification
+- E2E Test Suite (50 tests)
+- Active Mode Test Suite (41 tests)
+- CI/CD with GitHub Actions
 - Conventional Commits enforcement
-- Affected Tests Detection
+- Environment Parity verification
 
-**Comprehensive Testing:**
-- E2E Test Suite (50 tests, all passing ✅)
-- Active Mode Test Suite (41 tests, all passing ✅)
-- Test Fixtures (8 comprehensive fixtures)
+**Statistics:**
+- Total Tests: 91 (100% pass rate)
+- New Scripts: 6
+- CI/CD Workflows: 4
 
-**CI/CD Integration:**
-- 4 GitHub Actions workflows
-- Scheduled daily tests (2 AM UTC)
-- Automatic rollback on main failure
-
-**Enhanced mdd Wrapper:**
-- New Gold Standard commands (validatestate, verifyenvparity, detectaffectedtests, installhooks, validatecommit)
-- New testing commands (testactivemode, e2etest)
-
-**Documentation:**
-- Complete Gold Standard guide
-- Hook installation guide
-- Comprehensive test documentation
-
-**Cursor Rules:**
-- State tracking enforcement
-- Fresh Chat integration
-- Enhanced memory management
-
-#### 🔧 Changed
-
-- `validate-state.sh`: Now checks staged changes when run as pre-commit hook
-- `e2e-test.sh`: Extended with 34 new tests (from 14 to 50 total)
-- `README.md`: Updated with Gold Standard features and new commands
-- `mdd wrapper`: Enhanced with new command mappings and help text
-
-#### 🐛 Fixed
-
-- Pre-commit hook now correctly validates staged changes
-- Script detection in e2e tests now uses `$PROJECT_ROOT` for reliability
-- Test output parsing fixed
-- Workflow tests now properly copy template files
-
-#### 📊 Statistics
-
-- **Total Tests**: 91 (50 E2E + 41 Active Mode)
-- **Test Pass Rate**: 100% ✅
-- **New Scripts**: 6 (validation, hooks, testing)
-- **New Documentation**: 5+ files
-- **CI/CD Workflows**: 4 workflows
-
-#### 🚀 Migration Guide
-
-If upgrading from v1.0.0:
-
-1. **Install Git Hooks** (recommended):
-   ```bash
-   ./mdd installhooks
-   ```
-
-2. **Verify Environment Parity**:
-   ```bash
-   ./mdd verifyenvparity
-   ```
-
-3. **Run Tests** to verify everything works:
-   ```bash
-   ./mdd e2etest
-   ./mdd testactivemode
-   ```
+**Migration from v1.0.0:**
+```bash
+./mdd installhooks
+./mdd verifyenvparity
+./mdd e2etest
+```
 
 ---
 
@@ -594,32 +261,17 @@ If upgrading from v1.0.0:
 #### Initial Release
 
 - Core MDD workflow scripts
-- Basic task management (create, check, archive)
+- Task management (create, check, archive)
 - Bootstrap and Active Mode support
-- Basic documentation
-- Feature templates (feature, bug, refactor, decision)
+- Feature templates
 - Progress tracking and checkpoint system
-- Agent definitions (mdd-executor)
 - Cursor rules for memory management
 
-**Key Features:**
-- Markdown-driven task management
-- State persistence across sessions
-- Automatic mode detection (Bootstrap vs Active)
-- Checkpoint system for human verification
-- Template-based feature creation
-
 ---
 
-## 🙏 Acknowledgments
+## Support
 
-**Made with ❤️ for developers who want to build better with AI**
-
----
-
-## 📞 Support
-
-For issues, questions, or contributions, please open an issue on [GitHub](https://github.com/e-faraday/no_go_crayzy_anymore/issues).
+For issues or questions: [GitHub Issues](https://github.com/e-faraday/no_go_crayzy_anymore/issues)
 
 ---
 

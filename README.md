@@ -420,6 +420,200 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
+## 📋 Changelog
+
+### [3.0.0] - 2026-01-24
+
+#### 🎉 Major Release: Version Compatibility & Global Scripts Architecture
+
+This release introduces automatic version compatibility checking and a global scripts architecture that makes MDD projects more portable and prevents data corruption from version mismatches.
+
+#### ✨ Added
+
+**Version Compatibility System:**
+- Automatic version tracking via `.claude/.mdd-version` file
+- `check-mdd-version.sh` script for compatibility validation
+- **BLOCKING** behavior for major version mismatches (prevents data corruption)
+- Override option: `MDD_SKIP_VERSION_CHECK=1` for emergency situations
+- Clear error messages for backward and forward incompatibility scenarios
+- Automatic version detection from git tags, branches, or VERSION file
+
+**Global Scripts Architecture:**
+- Scripts now installed globally to `~/.mdd/scripts/` (one-time setup)
+- Projects only contain `.claude/` state directory (fully portable)
+- `mdd` wrapper script automatically uses global scripts
+- Backward compatibility: Still supports project-local scripts if needed
+
+**Enhanced mdd Wrapper:**
+- Automatic version check before every command (except `setup`)
+- Color-coded error messages (RED for blocking, YELLOW for warnings)
+- Improved error handling and user guidance
+
+**Documentation:**
+- Complete version compatibility rules and examples
+- Version file mechanism explanation
+- Migration guidance for version upgrades
+
+#### 🔧 Changed
+
+- **`setup.sh`**: Now creates `.claude/.mdd-version` file automatically
+- **`mdd` wrapper**: Integrated version compatibility checking
+- **Project structure**: Scripts moved to global location (`~/.mdd/scripts/`)
+- **README.md**: Added comprehensive version compatibility documentation
+
+#### 🐛 Fixed
+
+- Version detection now works correctly from git tags, branches, and VERSION file
+- Version comparison logic handles edge cases (missing files, invalid versions)
+- Error messages now properly distinguish between backward and forward incompatibility
+
+#### 📊 Statistics
+
+- **New Scripts**: 1 (`check-mdd-version.sh`)
+- **New Files**: `.claude/.mdd-version` (auto-created per project)
+- **Breaking Changes**: Major version mismatches now block execution
+- **Migration Required**: v2.0.0 projects should migrate (see guide below)
+
+#### 🚀 Migration Guide
+
+If upgrading from v2.0.0:
+
+1. **Install Global Scripts** (one-time):
+   ```bash
+   git clone -b v3.0.0 https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
+   ```
+
+2. **Update Existing Projects**:
+   ```bash
+   cd your-project
+   # Run setup to create version file
+   ~/.mdd/scripts/setup.sh
+   # This creates .claude/.mdd-version with "v3.0.0"
+   ```
+
+3. **Verify Version Compatibility**:
+   ```bash
+   # Test version check (should pass)
+   mdd newtask feature "Test"
+   ```
+
+4. **Remove Old Project Scripts** (optional):
+   ```bash
+   # Scripts are now global, project scripts can be removed
+   rm -rf scripts/
+   ```
+
+**Important Notes:**
+- v3.0.0 projects **MUST NOT** be used with v2.0.0 scripts (backward incompatible)
+- v2.0.0 projects can work with v3.0.0 scripts (forward compatible, but migration recommended)
+- If you encounter version mismatch errors, use `MDD_SKIP_VERSION_CHECK=1` only in emergencies
+
+---
+
+### [2.0.0] - 2026-01-22
+
+#### 🎉 Major Release: Gold Standard Implementation
+
+This release introduces comprehensive testing, validation, and automation features that bring MDD to production-ready quality.
+
+#### ✨ Added
+
+**Gold Standard Features:**
+- Git Hooks Integration (pre-commit, commit-msg)
+- Environment Parity verification
+- Conventional Commits enforcement
+- Affected Tests Detection
+
+**Comprehensive Testing:**
+- E2E Test Suite (50 tests, all passing ✅)
+- Active Mode Test Suite (41 tests, all passing ✅)
+- Test Fixtures (8 comprehensive fixtures)
+
+**CI/CD Integration:**
+- 4 GitHub Actions workflows
+- Scheduled daily tests (2 AM UTC)
+- Automatic rollback on main failure
+
+**Enhanced mdd Wrapper:**
+- New Gold Standard commands (validatestate, verifyenvparity, detectaffectedtests, installhooks, validatecommit)
+- New testing commands (testactivemode, e2etest)
+
+**Documentation:**
+- Complete Gold Standard guide
+- Hook installation guide
+- Comprehensive test documentation
+
+**Cursor Rules:**
+- State tracking enforcement
+- Fresh Chat integration
+- Enhanced memory management
+
+#### 🔧 Changed
+
+- `validate-state.sh`: Now checks staged changes when run as pre-commit hook
+- `e2e-test.sh`: Extended with 34 new tests (from 14 to 50 total)
+- `README.md`: Updated with Gold Standard features and new commands
+- `mdd wrapper`: Enhanced with new command mappings and help text
+
+#### 🐛 Fixed
+
+- Pre-commit hook now correctly validates staged changes
+- Script detection in e2e tests now uses `$PROJECT_ROOT` for reliability
+- Test output parsing fixed
+- Workflow tests now properly copy template files
+
+#### 📊 Statistics
+
+- **Total Tests**: 91 (50 E2E + 41 Active Mode)
+- **Test Pass Rate**: 100% ✅
+- **New Scripts**: 6 (validation, hooks, testing)
+- **New Documentation**: 5+ files
+- **CI/CD Workflows**: 4 workflows
+
+#### 🚀 Migration Guide
+
+If upgrading from v1.0.0:
+
+1. **Install Git Hooks** (recommended):
+   ```bash
+   ./mdd installhooks
+   ```
+
+2. **Verify Environment Parity**:
+   ```bash
+   ./mdd verifyenvparity
+   ```
+
+3. **Run Tests** to verify everything works:
+   ```bash
+   ./mdd e2etest
+   ./mdd testactivemode
+   ```
+
+---
+
+### [1.0.0] - 2026-01-17
+
+#### Initial Release
+
+- Core MDD workflow scripts
+- Basic task management (create, check, archive)
+- Bootstrap and Active Mode support
+- Basic documentation
+- Feature templates (feature, bug, refactor, decision)
+- Progress tracking and checkpoint system
+- Agent definitions (mdd-executor)
+- Cursor rules for memory management
+
+**Key Features:**
+- Markdown-driven task management
+- State persistence across sessions
+- Automatic mode detection (Bootstrap vs Active)
+- Checkpoint system for human verification
+- Template-based feature creation
+
+---
+
 ## 🙏 Acknowledgments
 
 **Made with ❤️ for developers who want to build better with AI**

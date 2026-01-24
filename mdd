@@ -40,12 +40,26 @@ else
     SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_FILE")" && pwd)"
 fi
 
-SCRIPTS_DIR="$SCRIPT_DIR/scripts"
+# Try to find scripts directory
+# Priority 1: Global MDD scripts (~/.mdd/scripts/)
+# Priority 2: Project-local scripts (for backward compatibility)
+GLOBAL_SCRIPTS_DIR="$HOME/.mdd/scripts"
+PROJECT_SCRIPTS_DIR="$SCRIPT_DIR/scripts"
 
-# Project check
-if [ ! -d "$SCRIPTS_DIR" ]; then
-    echo "❌ Error: scripts/ directory not found"
-    echo "   Run this from your MDD project root"
+if [ -d "$GLOBAL_SCRIPTS_DIR" ]; then
+    SCRIPTS_DIR="$GLOBAL_SCRIPTS_DIR"
+elif [ -d "$PROJECT_SCRIPTS_DIR" ]; then
+    # Fallback to project-local scripts (backward compatibility)
+    SCRIPTS_DIR="$PROJECT_SCRIPTS_DIR"
+else
+    echo "❌ Error: MDD scripts directory not found"
+    echo ""
+    echo "Please install MDD scripts globally:"
+    echo "  1. Clone MDD repository: git clone https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd"
+    echo "  2. Or run setup.sh in your project to create .claude/ structure"
+    echo ""
+    echo "Global scripts location: $GLOBAL_SCRIPTS_DIR"
+    echo "Project scripts location: $PROJECT_SCRIPTS_DIR"
     exit 1
 fi
 

@@ -55,19 +55,19 @@ cd ~/Projects/my-new-project
 path/to/mdd/scripts/setup.sh
 
 # Option B: Clone MDD repository first, then run setup
-git clone https://github.com/e-faraday/no_go_crayzy_anymore.git mdd
-cd mdd
-./scripts/setup.sh
+git clone https://github.com/e-faraday/no_go_crayzy_anymore.git /tmp/mdd
+cd ~/Projects/my-new-project
+/tmp/mdd/scripts/setup.sh
 ```
 
 The `setup.sh` script will:
-- ✅ Create directory structure (`.claude/`, `scripts/`)
-- ✅ Copy all necessary scripts from MDD repository
-- ✅ Copy templates
-- ✅ Create `mdd` wrapper script
+- ✅ Create directory structure (`.claude/` only - scripts are global)
+- ✅ Install global scripts to `~/.mdd/scripts/` (one-time setup)
+- ✅ Copy templates to `.claude/templates/`
+- ✅ Create `mdd` wrapper script in project root
 - ✅ Set up global `mdd` command (optional)
 
-**Note:** If you already have a global `mdd` command configured, you still need to copy the `scripts/` directory to your project. The setup script handles this automatically.
+**Important:** Scripts are now **global** (`~/.mdd/scripts/`). Only state files (`.claude/`) are stored in your project. This makes projects more portable - you only need to copy `.claude/` when moving projects.
 
 ### Installation (For Existing MDD Projects)
 
@@ -87,39 +87,47 @@ If you already have MDD set up in your project:
 ### Basic Workflow
 
 ```bash
-# Create a new feature
-./scripts/new-task.sh feature "Add dark mode"
+# Create a new feature (uses global scripts)
+mdd newtask feature "Add dark mode"
 
 # Start working on it
-./scripts/start-task.sh .claude/active/add-dark-mode.md "Started implementation"
+mdd starttask .claude/active/add-dark-mode.md "Started implementation"
 
 # Update progress
-./scripts/update-progress.sh .claude/active/add-dark-mode.md "Added theme toggle component"
+mdd updateprogress .claude/active/add-dark-mode.md "Added theme toggle component"
 
 # Mark as complete
-./scripts/check-task.sh .claude/active/add-dark-mode.md "Dark mode feature"
+mdd checktask .claude/active/add-dark-mode.md "Dark mode feature"
 
 # Archive completed tasks
-./scripts/archive-completed.sh
+mdd archive
 ```
+
+**Note:** You can also use full script paths if needed: `~/.mdd/scripts/new-task.sh feature "Name"`
 
 ---
 
 ## 📁 Project Structure
 
+### In Your Project (Portable State)
 ```
-mdd/
-├── .claude/
-│   ├── active/          # Active feature markdown files
-│   ├── completed/       # Archived/completed features
-│   ├── templates/       # Feature templates
-│   ├── agents/          # Agent definitions (e.g. mdd-executor)
-│   └── settings.json    # Cursor settings
-├── scripts/             # Automation scripts
-├── tests/               # Test suite
-├── plans/               # Project plans
-└── mdd-template/        # MDD template structure
+your-project/
+└── .claude/
+    ├── active/          # Active feature markdown files (state)
+    ├── completed/       # Archived/completed features (state)
+    ├── templates/       # Feature templates
+    ├── decisions/       # Decision records (state)
+    └── agents/          # Agent definitions (e.g. mdd-executor)
 ```
+
+### Global (Shared Across All Projects)
+```
+~/.mdd/
+├── scripts/             # Automation scripts (global)
+└── mdd                  # Wrapper script (optional, can be in ~/bin/)
+```
+
+**Key Point:** Only `.claude/` is in your project. Scripts are global, making projects portable - just copy `.claude/` when moving projects!
 
 ---
 

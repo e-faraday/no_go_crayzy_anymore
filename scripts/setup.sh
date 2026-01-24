@@ -16,13 +16,12 @@ PROJECT_ROOT="$(pwd)"
 echo -e "${BLUE}🚀 Setting up MD-Driven Development...${NC}"
 echo ""
 
-# Create directory structure
-echo "Creating directories..."
+# Create directory structure (only .claude/, scripts are global now)
+echo "Creating directory structure..."
 mkdir -p .claude/active
 mkdir -p .claude/completed
 mkdir -p .claude/templates
 mkdir -p .claude/decisions
-mkdir -p scripts
 
 # Create .gitkeep files
 touch .claude/active/.gitkeep
@@ -32,27 +31,32 @@ touch .claude/decisions/.gitkeep
 echo -e "${GREEN}✅ Directory structure created${NC}"
 echo ""
 
-# Make scripts executable
-echo "Making scripts executable..."
-chmod +x scripts/*.sh 2>/dev/null || true
+# Setup global scripts if not already installed
+GLOBAL_MDD_DIR="$HOME/.mdd"
+GLOBAL_SCRIPTS_DIR="$GLOBAL_MDD_DIR/scripts"
 
-echo -e "${GREEN}✅ Scripts are executable${NC}"
-echo ""
-
-# Copy scripts from MDD repository to current project
-echo "Copying scripts from MDD repository..."
-if [ -d "$SCRIPT_DIR" ]; then
-    # Ensure scripts directory exists
-    mkdir -p "$PROJECT_ROOT/scripts"
-    # Copy all .sh files from MDD repository
-    cp "$SCRIPT_DIR"/*.sh "$PROJECT_ROOT/scripts/" 2>/dev/null || true
-    # Make copied scripts executable
-    chmod +x "$PROJECT_ROOT/scripts"/*.sh 2>/dev/null || true
-    echo -e "${GREEN}✅ Scripts copied${NC}"
+if [ ! -d "$GLOBAL_SCRIPTS_DIR" ]; then
+    echo "Setting up global MDD scripts..."
+    echo "This is a one-time setup. Scripts will be installed to: $GLOBAL_SCRIPTS_DIR"
+    echo ""
+    
+    # Create global MDD directory
+    mkdir -p "$GLOBAL_SCRIPTS_DIR"
+    
+    # Copy scripts to global location
+    if [ -d "$SCRIPT_DIR" ]; then
+        cp "$SCRIPT_DIR"/*.sh "$GLOBAL_SCRIPTS_DIR/" 2>/dev/null || true
+        chmod +x "$GLOBAL_SCRIPTS_DIR"/*.sh 2>/dev/null || true
+        echo -e "${GREEN}✅ Global scripts installed to $GLOBAL_SCRIPTS_DIR${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Warning: MDD scripts directory not found at $SCRIPT_DIR${NC}"
+        echo "Please clone MDD repository to ~/.mdd or install scripts manually"
+    fi
+    echo ""
 else
-    echo -e "${YELLOW}⚠️  Warning: MDD scripts directory not found at $SCRIPT_DIR${NC}"
+    echo -e "${BLUE}ℹ️  Global scripts already installed at $GLOBAL_SCRIPTS_DIR${NC}"
+    echo ""
 fi
-echo ""
 
 # Copy .claude templates if they exist
 echo "Copying templates..."
@@ -70,19 +74,19 @@ else
 fi
 echo ""
 
-# Create mdd wrapper script
+# Create mdd wrapper script (uses global scripts)
 echo "Creating mdd wrapper script..."
-if [ -f "$SCRIPT_DIR/../mdd-template/mdd" ]; then
-    # Copy from template if exists
-    cp "$SCRIPT_DIR/../mdd-template/mdd" "$PROJECT_ROOT/mdd" 2>/dev/null || true
+if [ -f "$SCRIPT_DIR/../mdd" ]; then
+    # Copy from MDD repository root if exists
+    cp "$SCRIPT_DIR/../mdd" "$PROJECT_ROOT/mdd" 2>/dev/null || true
     chmod +x "$PROJECT_ROOT/mdd" 2>/dev/null || true
-    echo -e "${GREEN}✅ mdd wrapper script created from template${NC}"
+    echo -e "${GREEN}✅ mdd wrapper script created${NC}"
 elif [ -f "$PROJECT_ROOT/mdd" ]; then
     # File already exists, just make it executable
     chmod +x "$PROJECT_ROOT/mdd" 2>/dev/null || true
     echo -e "${GREEN}✅ mdd wrapper script found and made executable${NC}"
 else
-    # Create basic mdd wrapper
+    # Create mdd wrapper that uses global scripts
     cat > "$PROJECT_ROOT/mdd" << 'MDD_EOF'
 #!/bin/bash
 # mdd - MDD Script Wrapper (Bash + Zsh compatible)
@@ -123,10 +127,26 @@ else
     SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_FILE")" && pwd)"
 fi
 
-SCRIPTS_DIR="$SCRIPT_DIR/scripts"
+# Try to find scripts directory
+# Priority 1: Global MDD scripts (~/.mdd/scripts/)
+# Priority 2: Project-local scripts (for backward compatibility)
+GLOBAL_SCRIPTS_DIR="$HOME/.mdd/scripts"
+PROJECT_SCRIPTS_DIR="$SCRIPT_DIR/scripts"
 
-if [ ! -d "$SCRIPTS_DIR" ]; then
-    echo "❌ Error: scripts/ directory not found"
+if [ -d "$GLOBAL_SCRIPTS_DIR" ]; then
+    SCRIPTS_DIR="$GLOBAL_SCRIPTS_DIR"
+elif [ -d "$PROJECT_SCRIPTS_DIR" ]; then
+    # Fallback to project-local scripts (backward compatibility)
+    SCRIPTS_DIR="$PROJECT_SCRIPTS_DIR"
+else
+    echo "❌ Error: MDD scripts directory not found"
+    echo ""
+    echo "Please install MDD scripts globally:"
+    echo "  1. Clone MDD repository: git clone https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd"
+    echo "  2. Or run setup.sh in your project to create .claude/ structure"
+    echo ""
+    echo "Global scripts location: $GLOBAL_SCRIPTS_DIR"
+    echo "Project scripts location: $PROJECT_SCRIPTS_DIR"
     exit 1
 fi
 
@@ -192,15 +212,16 @@ echo ""
 if git rev-parse --git-dir > /dev/null 2>&1; then
     echo "Git repository detected"
     
-    # Add to git
-    git add .claude/ scripts/
+    # Add to git (only .claude/, scripts are global now)
+    git add .claude/
     
     echo -e "${GREEN}✅ Files staged for commit${NC}"
     echo ""
     echo "Next steps:"
     echo "  1. git commit -m 'Add MD-Driven Development setup'"
     echo "  2. mdd newtask feature 'Your First Feature'"
-    echo "     (or: ./scripts/new-task.sh feature 'Your First Feature')"
+    echo ""
+    echo "Note: Scripts are now global (~/.mdd/scripts/), only .claude/ is in your project"
 else
     echo -e "${BLUE}ℹ️  Not a git repository${NC}"
     echo ""

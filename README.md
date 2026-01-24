@@ -71,18 +71,16 @@ The `setup.sh` script will:
 
 ### Installation (For Existing MDD Projects)
 
-If you already have MDD set up in your project:
+If you already have MDD set up in your project, you can use the global scripts directly:
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/e-faraday/no_go_crayzy_anymore.git mdd
-   cd mdd
-   ```
+```bash
+# Make sure global scripts are installed
+# (setup.sh does this automatically, or install manually:)
+# git clone https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
 
-2. **Create your first task:**
-   ```bash
-   ./scripts/new-task.sh feature "Your First Feature"
-   ```
+# Create your first task
+mdd newtask feature "Your First Feature"
+```
 
 ### Basic Workflow
 

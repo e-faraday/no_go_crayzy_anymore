@@ -10,7 +10,8 @@ NC='\033[0m'
 
 # Get script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# PROJECT_ROOT should be the current working directory, not script's parent
+PROJECT_ROOT="$(pwd)"
 
 echo -e "${BLUE}🚀 Setting up MD-Driven Development...${NC}"
 echo ""
@@ -36,6 +37,37 @@ echo "Making scripts executable..."
 chmod +x scripts/*.sh 2>/dev/null || true
 
 echo -e "${GREEN}✅ Scripts are executable${NC}"
+echo ""
+
+# Copy scripts from MDD repository to current project
+echo "Copying scripts from MDD repository..."
+if [ -d "$SCRIPT_DIR" ]; then
+    # Ensure scripts directory exists
+    mkdir -p "$PROJECT_ROOT/scripts"
+    # Copy all .sh files from MDD repository
+    cp "$SCRIPT_DIR"/*.sh "$PROJECT_ROOT/scripts/" 2>/dev/null || true
+    # Make copied scripts executable
+    chmod +x "$PROJECT_ROOT/scripts"/*.sh 2>/dev/null || true
+    echo -e "${GREEN}✅ Scripts copied${NC}"
+else
+    echo -e "${YELLOW}⚠️  Warning: MDD scripts directory not found at $SCRIPT_DIR${NC}"
+fi
+echo ""
+
+# Copy .claude templates if they exist
+echo "Copying templates..."
+if [ -d "$SCRIPT_DIR/../.claude/templates" ]; then
+    mkdir -p "$PROJECT_ROOT/.claude/templates"
+    cp -r "$SCRIPT_DIR/../.claude/templates"/* "$PROJECT_ROOT/.claude/templates/" 2>/dev/null || true
+    echo -e "${GREEN}✅ Templates copied${NC}"
+elif [ -d "$SCRIPT_DIR/../mdd-template/.claude/templates" ]; then
+    # Fallback to mdd-template directory
+    mkdir -p "$PROJECT_ROOT/.claude/templates"
+    cp -r "$SCRIPT_DIR/../mdd-template/.claude/templates"/* "$PROJECT_ROOT/.claude/templates/" 2>/dev/null || true
+    echo -e "${GREEN}✅ Templates copied from template${NC}"
+else
+    echo -e "${YELLOW}⚠️  Warning: Templates directory not found${NC}"
+fi
 echo ""
 
 # Create mdd wrapper script

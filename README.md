@@ -1,267 +1,118 @@
-<div align="center">
+# No Go Crayzy Anymore
 
-# 🚀 Cursor No Go Crazy Anymore (MDD)
+> **Markdown Driven Development Framework for Vibe Coding**  
+> A lightweight, spec-driven workflow for building with AI — designed to prevent context rot by keeping implementation work in tact contexts.
 
-**The AI Workflow Engine for Cursor**
-
-*Standardize your process. Persist your state. Automate your progress.*
-
-[![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
-
-<br>
-
-**"Fresh Chat is the solution for performance, MDD is the solution for continuity."**
-<br>
-*A script-driven framework to manage high-level AI tasks across multiple chat sessions.*
-
-</div>
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## 🎯 Why MDD?
+## 📋 Branch Structure
 
-**Fresh Chat solves performance. MDD solves continuity.**
+```
+main          # Main branch (stable) v2.0.0
+├
+└── v3.0.0    # New version branch
+```
 
-Cursor's **Fresh Chat (Shift+Cmd+L)** feature solves performance issues, but creates **State Loss**:
+### Version Information
 
-* 🧠 **Forgetfulness:** AI forgets what stage the project is at.
-* 📉 **Tracking Difficulty:** Information about which tasks are done and which remain is buried in chat history.
-* 🛠️ **Loading Cost:** Reloading context into each new chat wastes time.
-
-**MDD (Markdown Driven Development)** fills this gap by managing the process like a "State Machine":
-
-- 📝 **Workflow Management:** Standardized process (define → execute → checkpoint)
-- 🔄 **State Persistence:** Progress is persistent in markdown file (not affected by chat resets)
-- 📊 **Traceability:** Every step has a record and a corresponding commit
+- **main (v2.0.0)**: Stable production version
+- **v3.0.0**: Development branch for next major release
 
 ---
 
-## 👥 Who This Is For
+## 🎯 Overview
 
-- ✅ You want a simple workflow: **describe → plan → execute → checkpoint → repeat**
-- ✅ You want **traceable progress** and **atomic commits**
-- ✅ You use **Cursor** and want **workflow continuity** and **traceability** across multiple chat sessions
-- ✅ You want **state persistence** - your progress survives chat resets
+**Stop managing chats. Start managing workflows.**
+
+MDD (Markdown Driven Development) is a framework that helps you maintain context and continuity when working with AI coding assistants like Cursor. It prevents context rot by keeping all implementation work in structured markdown files that persist across sessions.
+
+### Key Features
+
+- ✅ **State Tracking**: Automatic state management across chat sessions
+- ✅ **Bootstrap & Active Modes**: Automatic mode detection based on project state
+- ✅ **Checkpoint System**: Human verification, decisions, and action points
+- ✅ **Automation Scripts**: Complete workflow automation
+- ✅ **CI/CD Integration**: Gold standard testing and validation
+- ✅ **Pre-commit Hooks**: Automatic state validation
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
-### Option A: Use the template inside your project (recommended)
+### For New Projects (First Time Setup)
 
-Copy the template contents into your target repo:
+**Important:** If you're setting up MDD in a **new project**, you need to run the setup script:
 
 ```bash
-cp -R mdd-template/. /path/to/your-project/
-cd /path/to/your-project
+# Clone MDD repository
+git clone https://github.com/e-faraday/no_go_crayzy_anymore.git
+cd no_go_crayzy_anymore
+
+# Run setup to initialize MDD structure
 ./scripts/setup.sh
 ```
 
-**After setup, you can use MDD commands in two ways:**
+The `setup.sh` script will:
+- ✅ Create directory structure (`.claude/`, `scripts/`)
+- ✅ Copy all necessary scripts
+- ✅ Create `mdd` wrapper script
+- ✅ Set up global `mdd` command (optional)
 
-#### Method 1: Using `mdd` wrapper (shorter commands)
+**Note:** If you already have a global `mdd` command configured, you still need to copy the `scripts/` directory to your project. The setup script handles this automatically.
+
+### Installation (For Existing MDD Projects)
+
+If you already have MDD set up in your project:
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/e-faraday/no_go_crayzy_anymore.git
+   cd no_go_crayzy_anymore
+   ```
+
+2. **Create your first task:**
+   ```bash
+   ./scripts/new-task.sh feature "Your First Feature"
+   ```
+
+### Basic Workflow
 
 ```bash
-# Short commands
-mdd newtask feature "Add dark mode"
-mdd checktask .claude/active/feature-x.md "Task 1"
-mdd autosync
-mdd archive
-```
-
-**Note:** `setup.sh` automatically creates a symlink in `~/bin/mdd` for global access. If `~/bin` is in your PATH, you can use `mdd` from anywhere. Otherwise, use `./mdd` from the project root.
-
-#### Method 2: Using full script paths (always works)
-
-```bash
-# Full script paths
+# Create a new feature
 ./scripts/new-task.sh feature "Add dark mode"
-./scripts/check-task.sh .claude/active/feature-x.md "Task 1"
-./scripts/auto-sync.sh
+
+# Start working on it
+./scripts/start-task.sh .claude/active/add-dark-mode.md "Started implementation"
+
+# Update progress
+./scripts/update-progress.sh .claude/active/add-dark-mode.md "Added theme toggle component"
+
+# Mark as complete
+./scripts/check-task.sh .claude/active/add-dark-mode.md "Dark mode feature"
+
+# Archive completed tasks
 ./scripts/archive-completed.sh
 ```
 
-**Both methods work identically - choose what's convenient for you!**
-
-### Option B: Use this repo as-is (sandbox)
-
-```bash
-cd mdd-test
-./scripts/setup.sh
-# Now you can use: mdd newtask feature "Add dark mode"
-# Or: ./scripts/new-task.sh feature "Add dark mode"
-```
-
-### 🔗 Optional: Global `mdd` Command Setup
-
-If you want to use `mdd` command from any directory (not just the project root):
-
-1. **Automatic (during setup):** `setup.sh` will offer to create a symlink in `~/bin/` and add it to your PATH.
-
-2. **Manual setup:**
-   ```bash
-   # Create ~/bin directory
-   mkdir -p ~/bin
-   
-   # Create symlink
-   ln -s /path/to/mdd-test/mdd ~/bin/mdd
-   
-   # Add to PATH (~/.zshrc or ~/.bashrc)
-   echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
-   source ~/.zshrc
-   ```
-
-3. **Verify:**
-   ```bash
-   which mdd
-   # Should show: ~/bin/mdd
-   
-   # Test from any directory
-   cd /any/project
-   mdd newtask feature "Test"
-   ```
-
-**Note:** If you prefer not to set up the symlink, you can always use `./mdd` from the project root or use full script paths like `./scripts/new-task.sh`.
-
 ---
 
-## 🛠️ The Solution: "Cockpit Mode" Workflow
+## 📁 Project Structure
 
-MDD transforms Cursor usage from a "chat" into a disciplined **Workflow**.
-
-### The Layout Strategy
-* **Left Panel (Pinned):** `feature.md` — Your process management file (Single Source of Truth).
-* **Right Panel:** Your code editor.
-* **Terminal:** Your MDD scripts (Process triggers).
-
-### The Continuous Workflow Loop
-
-1.  **📝 Define (`mdd newtask`):**
-    Break the work into atomic parts. Your plan file becomes AI's "External Memory".
-
-2.  **✨ Execute (Fresh Context):**
-    Start **Fresh Chat (Shift+Cmd+L)** for each plan step.
-    * **Action:** Tell the chat `@feature.md Implement Plan 1.2`.
-    * **Result:** AI focuses only on that moment, doesn't carry noise from previous chats, but knows where it is in the plan.
-
-3.  **✅ Checkpoint (`mdd checktask`):**
-    Seal it from the terminal when the step is done.
-    * Your markdown file is updated (`[x]`).
-    * Your git commit is automatically created.
-    * **State becomes persistent.** Now the next Fresh Chat knows exactly where it left off.
-
-### 💡 Why This Changes Your Workflow
-
-* **Atomic Progress:** Cursor only writes code; MDD manages which goal that code serves.
-* **Traceability:** Every step has a record (feature.md) and a corresponding commit.
-* **Context Persistence:** Even if you reset the chat 100 times, when you say `@feature.md`, AI has 100% awareness of the current workflow.
-
----
-
-## 📦 Create a Feature
-
-```bash
-# Method 1: Using mdd wrapper (shorter)
-mdd newtask feature "Add dark mode"
-
-# Method 2: Using full script path (always works)
-./scripts/new-task.sh feature "Add dark mode"
 ```
-
-This creates a feature file under:
-
-- `.claude/active/feature-add-dark-mode.md`
-
-Fill in:
-
-- 🎯 Goal
-- 🚫 Scope Guard (in/out of scope)
-- 📊 Implementation Plans (2–3 tasks per plan)
-- ✅ Acceptance Criteria
-
----
-
-## ⚡ Execute a Plan
-
-**Note:** Claude Code users can use the Task tool/subagent pattern; see `.claude/agents/mdd-executor.md` for details.
-
-### 🖥️ Cursor IDE (Fresh Chat Pattern)
-
-Use **Fresh Chat (Shift+Cmd+L)** for each plan to get fresh context while maintaining workflow continuity:
-
-```text
-# Chat 1: Plan 1
-@.claude/active/feature-add-dark-mode.md
-Help me implement Plan 1: Setup
-
-# Chat 2: Plan 2 (NEW CHAT)
-@.claude/active/feature-add-dark-mode.md
-Help me implement Plan 2: Implementation
+no_go_crayzy_anymore/
+├── .claude/
+│   ├── active/          # Active feature markdown files
+│   ├── completed/       # Archived/completed features
+│   ├── templates/       # Feature templates
+│   ├── agents/          # Agent definitions (e.g. mdd-executor)
+│   └── settings.json    # Cursor settings
+├── scripts/             # Automation scripts
+├── tests/               # Test suite
+├── plans/               # Project plans
+└── mdd-template/        # MDD template structure
 ```
-
-**Checkpoint rule in Cursor:** if you hit a checkpoint, **stay in the same chat** until the checkpoint is resolved; only then start a new chat for the next plan.
-
----
-
-## 🤔 Cursor Chat vs Claude Code
-
-### 🖥️ Cursor Chat (Designed for This Project) ✅
-
-**Usage:**
-```
-Shift+Cmd+L → @file → prompt → Enter
-For new plan: Shift+Cmd+L again (fresh chat)
-```
-
-**Advantages:**
-- ✅ Visual editor
-- ✅ Tab completion
-- ✅ @Codebase support
-- ✅ Fresh Chat for performance
-- ✅ MDD for workflow continuity
-
-**Note:**
-- Fresh Chat handles performance (clears context)
-- MDD handles continuity (preserves state in markdown)
-
-### 💻 Claude Code Terminal
-
-**Usage:**
-```bash
-claude
-> @file prompt
-```
-
-**Advantages:**
-- ✅ Automatic subagent
-- ✅ Terminal automation
-
-**Disadvantage:**
-- ⚠️ No visual editor
-
----
-
-## 🔧 How It Works
-
-### 📁 Core Files (What Persists)
-
-| File/Folder | Purpose |
-|---|---|
-| `.claude/active/` | Active feature markdown files |
-| `.claude/completed/` | Archived/completed features |
-| `.claude/templates/` | Feature templates |
-| `.claude/agents/` | Agent definitions (e.g. `mdd-executor`) |
-| `scripts/` | Automation scripts (create, update, commit, archive) |
-
-### 🎯 Checkpoints
-
-MDD supports these checkpoint types:
-
-- `human-verify`: you review/approve or report issues
-- `decision`: you choose an option
-- `human-action`: you perform a manual step (login, copy token, etc.)
-
-**Important:** for `decision` and `human-action`, the **result is explicitly carried forward** in the continuation prompt so it won't get lost if execution resumes in a fresh context.
 
 ---
 
@@ -271,8 +122,6 @@ MDD automatically detects your project state and adjusts behavior accordingly.
 
 ### Mode Detection
 
-MDD checks for active features to determine the current mode:
-
 ```bash
 ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l
 # Output: 0 = Bootstrap, >0 = Active
@@ -280,20 +129,13 @@ ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l
 
 ### Bootstrap Mode (New Project)
 
-**When:** No active features exist (`.claude/active/` is empty or only contains `.gitkeep`)
+**When:** No active features exist
 
 **Behavior:**
 - ✅ State tracking **NOT required** (no state exists yet)
 - ✅ OK to make code changes without state updates
 - ✅ OK to commit without validation
 - ✅ OK to create first feature
-
-**To start:**
-```bash
-./scripts/new-task.sh feature "Your First Feature"
-```
-
-**After first feature created:** Project automatically switches to Active Mode.
 
 ### Active Mode (Existing Project)
 
@@ -317,52 +159,9 @@ ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l
 ./scripts/validate-state.sh
 ```
 
-### Mode Transition
-
-**Bootstrap → Active:**
-- Happens automatically when first feature is created
-- State tracking becomes mandatory
-- Validation scripts start enforcing rules
-
-**Active → Bootstrap:**
-- Rare, only when all features are archived
-- Happens automatically when `.claude/active/` becomes empty
-
-### Why This Matters
-
-**Bootstrap Mode:**
-- Prevents unnecessary warnings in new projects
-- Allows you to set up project structure first
-- No state discipline until you're ready
-
-**Active Mode:**
-- Ensures continuity across Fresh Chat sessions
-- Prevents context rot
-- Maintains workflow integrity
-
-**Check current mode:**
-```bash
-# Quick check
-ls -1 .claude/active/*.md 2>/dev/null | grep -v .gitkeep | wc -l
-
-# Detailed view
-./scripts/daily-summary.sh
-```
-
 ---
 
-## 📦 Automation Tools (The Engine)
-
-These scripts automate your workflow discipline with Cursor:
-
-| Script | Workflow Role |
-|---|---|
-| `scripts/new-task.sh` | **Task Initiation:** Standardizes project scope and plan. |
-| `scripts/check-task.sh` | **Status Update:** Seals completed work, updates feature.md. |
-| `scripts/update-progress.sh` | **Context Addition:** Adds notes and intermediate logs to the plan. |
-| `scripts/archive-completed.sh` | **Cleanup:** Archives completed processes, maintains your focus. |
-
-You can use scripts in two ways:
+## 🛠️ Automation Tools
 
 ### Method 1: `mdd` Wrapper (Shorter Commands)
 
@@ -387,8 +186,6 @@ mdd dailysummary
 mdd syncall
 ```
 
-**Note:** Requires `./mdd` in project root, or `mdd` in PATH (if symlink is set up).
-
 ### Method 2: Full Script Paths (Always Works)
 
 ```bash
@@ -412,35 +209,41 @@ mdd syncall
 ./scripts/sync-all-tasks.sh
 ```
 
-**Both methods are equivalent - use whichever you prefer!**
-
 ### Available Commands
 
-| Task | `mdd` Command | Full Script Path |
-|---|---|---|
-| Create task | `mdd newtask feature "Name"` | `./scripts/new-task.sh feature "Name"` |
-| Check task | `mdd checktask <file> "Task"` | `./scripts/check-task.sh <file> "Task"` |
-| Update progress | `mdd updateprogress <file> "Msg"` | `./scripts/update-progress.sh <file> "Msg"` |
-| Start task | `mdd starttask <file> "Msg"` | `./scripts/start-task.sh <file> "Msg"` |
-| Archive | `mdd archive` | `./scripts/archive-completed.sh` |
-| Auto sync | `mdd autosync` | `./scripts/auto-sync.sh` |
-| Daily summary | `mdd dailysummary` | `./scripts/daily-summary.sh` |
-| Set priority | `mdd setpriority <file> high` | `./scripts/set-priority.sh <file> high` |
-| Add tags | `mdd addtags <file> tag1 tag2` | `./scripts/add-tags.sh <file> tag1 tag2` |
+| Task            | mdd Command                     | Full Script Path                          |
+| --------------- | ------------------------------- | ----------------------------------------- |
+| Create task     | `mdd newtask feature "Name"`    | `./scripts/new-task.sh feature "Name"`    |
+| Check task      | `mdd checktask <file> "Task"`   | `./scripts/check-task.sh <file> "Task"`   |
+| Update progress | `mdd updateprogress <file>`     | `./scripts/update-progress.sh <file>`      |
+| Start task      | `mdd starttask <file>`          | `./scripts/start-task.sh <file>`           |
+| Archive         | `mdd archive`                   | `./scripts/archive-completed.sh`          |
+| Auto sync       | `mdd autosync`                  | `./scripts/auto-sync.sh`                  |
+| Daily summary   | `mdd dailysummary`              | `./scripts/daily-summary.sh`              |
+| Set priority    | `mdd setpriority <file> high`   | `./scripts/set-priority.sh <file> high`   |
+| Add tags        | `mdd addtags <file> tag1 tag2`  | `./scripts/add-tags.sh <file> tag1 tag2`  |
 
 Run `mdd` without arguments to see all available commands.
 
 ### 🤖 Auto-commit (Optional)
 
-| Task | `mdd` Command | Full Script Path |
-|---|---|---|
-| Commit after task | `mdd autocommittask <file>` | `./scripts/auto-commit-task.sh <file>` |
-| Commit after plan | `mdd autocommitplan <file>` | `./scripts/auto-commit-plan.sh <file>` |
-| Commit after feature | `mdd autocommitfeature <file>` | `./scripts/auto-commit-feature.sh <file>` |
+| Task                 | mdd Command                  | Full Script Path                        |
+| -------------------- | ---------------------------- | --------------------------------------- |
+| Commit after task    | `mdd autocommittask <file>`  | `./scripts/auto-commit-task.sh <file>`  |
+| Commit after plan    | `mdd autocommitplan <file>`  | `./scripts/auto-commit-plan.sh <file>`  |
+| Commit after feature | `mdd autocommitfeature`      | `./scripts/auto-commit-feature.sh`      |
 
-### 🔐 Permissions
+---
 
-For frictionless automation, configure `.claude/settings.json` (included in this repo) to allow common Bash/Git commands without constant approvals.
+## 🎯 Checkpoints
+
+MDD supports these checkpoint types:
+
+- **`human-verify`**: You review/approve or report issues
+- **`decision`**: You choose an option
+- **`human-action`**: You perform a manual step (login, copy token, etc.)
+
+**Important:** For `decision` and `human-action`, the **result is explicitly carried forward** in the continuation prompt so it won't get lost if execution resumes in a fresh context.
 
 ---
 
@@ -461,6 +264,7 @@ Comprehensive test suite for Active Mode functionality with **41 test cases** ac
 ```
 
 **Test Categories:**
+
 1. Active Mode Detection
 2. State Update Enforcement
 3. validate-state.sh Script Tests
@@ -473,6 +277,7 @@ Comprehensive test suite for Active Mode functionality with **41 test cases** ac
 10. Error Handling
 
 **CI/CD Integration:**
+
 - Tests run automatically on push/PR
 - Daily scheduled tests at 2 AM UTC
 - GitHub Actions workflows in `.github/workflows/`
@@ -481,7 +286,7 @@ See `tests/README.md` for complete test documentation.
 
 ---
 
-## 📚 Docs
+## 📚 Documentation
 
 - `mdd-template/WORKFLOW.md` - Complete workflow guide
 - `tests/README.md` - Test suite documentation
@@ -489,14 +294,40 @@ See `tests/README.md` for complete test documentation.
 
 ---
 
----
+## 🔐 Permissions
 
-<div align="center">
-
-**Stop managing chats. Start managing workflows.**
-
-</div>
+For frictionless automation, configure `.claude/settings.json` (included in this repo) to allow common Bash/Git commands without constant approvals.
 
 ---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## 🙏 Acknowledgments
 
 **Made with ❤️ for developers who want to build better with AI**
+
+---
+
+## 📞 Support
+
+For issues, questions, or contributions, please open an issue on [GitHub](https://github.com/e-faraday/no_go_crayzy_anymore/issues).
+
+---
+
+**Stop managing chats. Start managing workflows.**

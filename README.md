@@ -10,15 +10,12 @@
 ## 📋 Branch Structure
 
 ```
-main          # Main branch (stable) v2.0.0
-├
-└── v3.0.0    # New version branch
+main          # Main branch (stable) v3.0.0
 ```
 
 ### Version Information
 
-- **main (v2.0.0)**: Stable production version
-- **v3.0.0**: Development branch for next major release
+- **main (v3.0.0)**: Current stable version with version compatibility system
 
 ### 🔄 Version Compatibility
 

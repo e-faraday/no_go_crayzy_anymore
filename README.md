@@ -24,32 +24,90 @@ main          # Main branch (stable) v2.0.0
 
 MDD automatically tracks version compatibility between your project and the installed scripts. When you set up a project with `setup.sh`, it creates a `.claude/.mdd-version` file that records the MDD version used.
 
-**Important:** If you move a project created with v3.0.0 to a new machine and install v4.0.0 scripts, MDD will detect the version mismatch and warn you:
+**Important:** If you move a project created with v3.0.0 to a new machine and install v4.0.0 scripts, MDD will detect the version mismatch and **block execution** to prevent data corruption:
 
 ```
-⚠️  MDD Version Uyumsuzluğu Tespit Edildi!
+⚠️  MDD Version Incompatibility Detected!
 
-Proje MDD Versiyonu: v3.0.0
-Script MDD Versiyonu: v4.0.0
+Project MDD Version: v3.0.0
+Script MDD Version: v4.0.0
 
-Bu proje v3.0.0 ile oluşturulmuş, ancak v4.0.0 script'leri kullanılıyor.
+This project was created with v3.0.0, but v4.0.0 scripts are being used.
 
-Önerilen Çözümler:
-  1. Projeyi v4.0.0 ile uyumlu hale getirmek için migration yapın
-  2. Veya v3.0.0 script'lerini kullanın:
+⚠️  Backward Incompatibility:
+  v3 projects are NOT fully compatible with v2 scripts.
+  v3 features may not be available in v2 scripts.
+  Some commands may fail or show unexpected behavior.
+
+Recommended Solutions:
+  1. Use v3.0.0 scripts (RECOMMENDED):
      git clone -b v3.0.0 https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
+  2. Or migrate the project to be compatible with v4.0.0
+
+❌ Command stopped: Major version incompatibility detected.
+Override: MDD_SKIP_VERSION_CHECK=1 mdd <command>
 ```
 
 **Version Compatibility Rules:**
 - ✅ **Same major version** (e.g., v3.0.0 ↔ v3.1.0): Compatible, minor warnings may appear
-- ⚠️ **Different major versions** (e.g., v3.0.0 ↔ v4.0.0): May be incompatible, migration recommended
+- ⚠️ **Different major versions** (e.g., v3.0.0 ↔ v4.0.0): **BLOCKING** - Command execution stops to prevent data corruption
 - ❌ **Backward incompatibility** (e.g., v3.0.0 project with v2.0.0 scripts): **NOT compatible** - v3.0.0 features won't work with v2.0.0 scripts
 - ⚠️ **Forward incompatibility** (e.g., v2.0.0 project with v3.0.0 scripts): May work but some v3.0.0 features won't be available
-- ℹ️ **No version file**: New projects or projects created before version tracking was added
+- ℹ️ **No version file**: New projects or projects created before version tracking was added (non-blocking warning)
 
 **Important Notes:**
-- **v3.0.0 projeleri v2.0.0 script'leri ile KULLANILMAMALIDIR**: v3.0.0 özellikleri v2.0.0'da yoktur
-- **v2.0.0 projeleri v3.0.0 script'leri ile çalışabilir**: Ancak migration yapılması önerilir
+- **v3.0.0 projects MUST NOT be used with v2.0.0 scripts**: v3.0.0 features don't exist in v2.0.0
+- **v2.0.0 projects can work with v3.0.0 scripts**: But migration is recommended
+- **Override option**: Use `MDD_SKIP_VERSION_CHECK=1` to bypass version check in emergency situations
+
+#### 📄 Version File Mechanism
+
+The `.claude/.mdd-version` file is the core of MDD's version tracking system:
+
+**1. Creation:**
+- Automatically created when you run `mdd setup` or `setup.sh`
+- Version is detected from:
+  1. Git tag (if MDD repo is on a tagged commit)
+  2. Git branch name (if branch matches version pattern like `v3.0.0`)
+  3. `VERSION` file in MDD repo (if git is not available)
+  4. Default: `v3.0.0` (if none of the above)
+
+**2. Location:**
+```
+your-project/
+└── .claude/
+    └── .mdd-version  ← Contains: "v3.0.0"
+```
+
+**3. Usage:**
+- Every `mdd` command automatically checks version compatibility
+- Compares project version (from `.claude/.mdd-version`) with script version (from `~/.mdd/scripts/` git repo)
+- **Major version mismatch** → **BLOCKING** (command stops)
+- **Minor/patch mismatch** → Warning (command continues)
+- **No version file** → Warning (command continues, assumes new project)
+
+**4. Example Flow:**
+```bash
+# 1. Setup new project
+cd my-project
+mdd setup
+# → Creates .claude/.mdd-version with "v3.0.0"
+
+# 2. Move project to another machine
+# (copy .claude/ directory)
+
+# 3. New machine has v4.0.0 scripts installed
+mdd newtask feature "Test"
+# → ⚠️  Version incompatibility detected!
+# → ❌ Command stopped: Major version incompatibility
+# → Solution: Install v3.0.0 scripts or migrate project
+```
+
+**5. Why It Matters:**
+- **Data Integrity**: Prevents data corruption from version mismatches
+- **Feature Compatibility**: Ensures features exist in the script version
+- **Portability**: Projects can be safely moved between machines
+- **Migration Guidance**: Helps users identify when migration is needed
 
 ---
 

@@ -6,6 +6,8 @@ set -e
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # Get script directory and project root
@@ -184,11 +186,25 @@ else
     exit 1
 fi
 
-# Check version compatibility (skip for setup command)
-if [ "$1" != "setup" ] && [ -d ".claude" ]; then
+# Check version compatibility (skip for setup command and if override is set)
+if [ "$1" != "setup" ] && [ -d ".claude" ] && [ "$MDD_SKIP_VERSION_CHECK" != "1" ]; then
     if [ -f "$SCRIPTS_DIR/check-mdd-version.sh" ]; then
-        # Run version check script (non-blocking, just shows warning)
-        "$SCRIPTS_DIR/check-mdd-version.sh" 2>&1 || true
+        # Run version check script
+        VERSION_CHECK_OUTPUT=$("$SCRIPTS_DIR/check-mdd-version.sh" 2>&1)
+        VERSION_CHECK_EXIT=$?
+        
+        # Always show output
+        echo "$VERSION_CHECK_OUTPUT" >&2
+        
+        # Exit 1 = Major version mismatch - BLOCKING (stop execution)
+        if [ $VERSION_CHECK_EXIT -eq 1 ]; then
+            echo "" >&2
+            echo -e "${RED}❌ Komut durduruldu: Major version uyumsuzluğu tespit edildi.${NC}" >&2
+            echo -e "${YELLOW}Override için: MDD_SKIP_VERSION_CHECK=1 mdd <komut>${NC}" >&2
+            exit 1
+        fi
+        # Exit 2 = Version file missing - Non-blocking (continue)
+        # Exit 0 = Compatible - Continue normally
     fi
 fi
 

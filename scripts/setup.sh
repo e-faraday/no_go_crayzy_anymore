@@ -366,21 +366,17 @@ if [ "$SKIP_SYMLINK" != "true" ]; then
             echo "  export PATH=\"\$HOME/bin:\$PATH\""
         fi
         echo ""
-        read -p "Would you like to add it now? (y/N) " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            # Add to PATH if not already there
-            if ! grep -q 'export PATH="$HOME/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then
-                echo '' >> "$SHELL_RC"
-                echo '# MDD - Add ~/bin to PATH for global mdd command' >> "$SHELL_RC"
-                echo 'export PATH="$HOME/bin:$PATH"' >> "$SHELL_RC"
-                echo -e "${GREEN}✅ Added to $SHELL_RC${NC}"
-                echo -e "${BLUE}ℹ️  Run 'source $SHELL_RC' or restart terminal${NC}"
-            else
-                echo -e "${BLUE}ℹ️  Already in $SHELL_RC${NC}"
-            fi
+        echo -e "${BLUE}ℹ️  Automatically adding to PATH...${NC}"
+        # Add to PATH if not already there
+        if ! grep -q 'export PATH="$HOME/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then
+            echo '' >> "$SHELL_RC"
+            echo '# MDD - Add ~/bin to PATH for global mdd command' >> "$SHELL_RC"
+            echo 'export PATH="$HOME/bin:$PATH"' >> "$SHELL_RC"
+            echo -e "${GREEN}✅ Added to $SHELL_RC${NC}"
+            echo -e "${YELLOW}⚠️  Run 'source $SHELL_RC' or restart terminal to use 'mdd' command${NC}"
         else
-            echo -e "${BLUE}ℹ️  You can add it manually later${NC}"
+            echo -e "${BLUE}ℹ️  Already in $SHELL_RC${NC}"
+            echo -e "${YELLOW}⚠️  Run 'source $SHELL_RC' or restart terminal if 'mdd' command doesn't work${NC}"
         fi
     fi
     echo ""

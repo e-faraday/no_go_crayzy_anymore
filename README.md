@@ -52,11 +52,12 @@ cd ~/Projects/my-new-project
 
 # 2. Run setup script from MDD repository
 # Option A: If you have MDD repository cloned locally
-path/to/mdd-repo/scripts/setup.sh
+path/to/mdd/scripts/setup.sh
 
 # Option B: Clone MDD repository first, then run setup
-git clone https://github.com/e-faraday/no_go_crayzy_anymore.git /tmp/mdd
-/tmp/mdd/scripts/setup.sh
+git clone https://github.com/e-faraday/no_go_crayzy_anymore.git mdd
+cd mdd
+./scripts/setup.sh
 ```
 
 The `setup.sh` script will:
@@ -74,8 +75,8 @@ If you already have MDD set up in your project:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/e-faraday/no_go_crayzy_anymore.git
-   cd no_go_crayzy_anymore
+   git clone https://github.com/e-faraday/no_go_crayzy_anymore.git mdd
+   cd mdd
    ```
 
 2. **Create your first task:**
@@ -107,7 +108,7 @@ If you already have MDD set up in your project:
 ## 📁 Project Structure
 
 ```
-no_go_crayzy_anymore/
+mdd/
 ├── .claude/
 │   ├── active/          # Active feature markdown files
 │   ├── completed/       # Archived/completed features

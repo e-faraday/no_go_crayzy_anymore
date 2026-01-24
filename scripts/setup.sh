@@ -128,6 +128,13 @@ else
 # mdd - MDD Script Wrapper (Bash + Zsh compatible)
 # Usage: mdd <command> [args...]
 
+# Color codes for output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
 # Get script directory (bash + zsh compatible, handles symlinks)
 if [[ -n "$ZSH_VERSION" ]]; then
     # Zsh - resolve symlink if needed
@@ -199,8 +206,8 @@ if [ "$1" != "setup" ] && [ -d ".claude" ] && [ "$MDD_SKIP_VERSION_CHECK" != "1"
         # Exit 1 = Major version mismatch - BLOCKING (stop execution)
         if [ $VERSION_CHECK_EXIT -eq 1 ]; then
             echo "" >&2
-            echo -e "${RED}❌ Komut durduruldu: Major version uyumsuzluğu tespit edildi.${NC}" >&2
-            echo -e "${YELLOW}Override için: MDD_SKIP_VERSION_CHECK=1 mdd <komut>${NC}" >&2
+            echo -e "${RED}❌ Command stopped: Major version incompatibility detected.${NC}" >&2
+            echo -e "${YELLOW}Override: MDD_SKIP_VERSION_CHECK=1 mdd <command>${NC}" >&2
             exit 1
         fi
         # Exit 2 = Version file missing - Non-blocking (continue)

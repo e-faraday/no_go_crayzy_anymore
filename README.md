@@ -1,4 +1,4 @@
-# No Go Crayzy Anymore
+# No Go Crazy Anymore
 
 > **Markdown Driven Development Framework for Vibe Coding**
 

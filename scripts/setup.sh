@@ -88,16 +88,39 @@ else
 # mdd - MDD Script Wrapper (Bash + Zsh compatible)
 # Usage: mdd <command> [args...]
 
-# Get script directory (bash + zsh compatible)
+# Get script directory (bash + zsh compatible, handles symlinks)
 if [[ -n "$ZSH_VERSION" ]]; then
-    # Zsh
-    SCRIPT_DIR="$(cd "$(dirname "${(%):-%x}")" && pwd)"
+    # Zsh - resolve symlink if needed
+    SCRIPT_FILE="${(%):-%x}"
+    # Resolve symlink to get actual file path
+    if command -v readlink >/dev/null 2>&1; then
+        # Try readlink -f first (GNU), fallback to readlink (BSD)
+        RESOLVED=$(readlink -f "$SCRIPT_FILE" 2>/dev/null || readlink "$SCRIPT_FILE" 2>/dev/null || echo "$SCRIPT_FILE")
+        if [ -n "$RESOLVED" ] && [ "$RESOLVED" != "$SCRIPT_FILE" ]; then
+            SCRIPT_FILE="$RESOLVED"
+        fi
+    fi
+    SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_FILE")" && pwd)"
 elif [[ -n "$BASH_VERSION" ]]; then
-    # Bash
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # Bash - resolve symlink if needed
+    SCRIPT_FILE="${BASH_SOURCE[0]}"
+    if command -v readlink >/dev/null 2>&1; then
+        RESOLVED=$(readlink -f "$SCRIPT_FILE" 2>/dev/null || readlink "$SCRIPT_FILE" 2>/dev/null || echo "$SCRIPT_FILE")
+        if [ -n "$RESOLVED" ] && [ "$RESOLVED" != "$SCRIPT_FILE" ]; then
+            SCRIPT_FILE="$RESOLVED"
+        fi
+    fi
+    SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_FILE")" && pwd)"
 else
     # Fallback
-    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    SCRIPT_FILE="$0"
+    if command -v readlink >/dev/null 2>&1; then
+        RESOLVED=$(readlink -f "$SCRIPT_FILE" 2>/dev/null || readlink "$SCRIPT_FILE" 2>/dev/null || echo "$SCRIPT_FILE")
+        if [ -n "$RESOLVED" ] && [ "$RESOLVED" != "$SCRIPT_FILE" ]; then
+            SCRIPT_FILE="$RESOLVED"
+        fi
+    fi
+    SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_FILE")" && pwd)"
 fi
 
 SCRIPTS_DIR="$SCRIPT_DIR/scripts"

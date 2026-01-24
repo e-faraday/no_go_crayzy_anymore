@@ -20,6 +20,37 @@ main          # Main branch (stable) v2.0.0
 - **main (v2.0.0)**: Stable production version
 - **v3.0.0**: Development branch for next major release
 
+### 🔄 Version Compatibility
+
+MDD automatically tracks version compatibility between your project and the installed scripts. When you set up a project with `setup.sh`, it creates a `.claude/.mdd-version` file that records the MDD version used.
+
+**Important:** If you move a project created with v3.0.0 to a new machine and install v4.0.0 scripts, MDD will detect the version mismatch and warn you:
+
+```
+⚠️  MDD Version Uyumsuzluğu Tespit Edildi!
+
+Proje MDD Versiyonu: v3.0.0
+Script MDD Versiyonu: v4.0.0
+
+Bu proje v3.0.0 ile oluşturulmuş, ancak v4.0.0 script'leri kullanılıyor.
+
+Önerilen Çözümler:
+  1. Projeyi v4.0.0 ile uyumlu hale getirmek için migration yapın
+  2. Veya v3.0.0 script'lerini kullanın:
+     git clone -b v3.0.0 https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd
+```
+
+**Version Compatibility Rules:**
+- ✅ **Same major version** (e.g., v3.0.0 ↔ v3.1.0): Compatible, minor warnings may appear
+- ⚠️ **Different major versions** (e.g., v3.0.0 ↔ v4.0.0): May be incompatible, migration recommended
+- ❌ **Backward incompatibility** (e.g., v3.0.0 project with v2.0.0 scripts): **NOT compatible** - v3.0.0 features won't work with v2.0.0 scripts
+- ⚠️ **Forward incompatibility** (e.g., v2.0.0 project with v3.0.0 scripts): May work but some v3.0.0 features won't be available
+- ℹ️ **No version file**: New projects or projects created before version tracking was added
+
+**Important Notes:**
+- **v3.0.0 projeleri v2.0.0 script'leri ile KULLANILMAMALIDIR**: v3.0.0 özellikleri v2.0.0'da yoktur
+- **v2.0.0 projeleri v3.0.0 script'leri ile çalışabilir**: Ancak migration yapılması önerilir
+
 ---
 
 ## 🎯 Overview

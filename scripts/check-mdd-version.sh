@@ -131,16 +131,27 @@ if [ "$PROJECT_MAJOR" != "$SCRIPT_MAJOR" ]; then
         echo "  2. Veya projeyi $SCRIPT_VERSION ile uyumlu hale getirmek için migration yapın" >&2
     else
         # Project is older (e.g., v2.0.0 project with v3.0.0 scripts)
-        echo -e "${RED}Bu proje $PROJECT_VERSION ile oluşturulmuş, ancak $SCRIPT_VERSION script'leri kullanılıyor.${NC}" >&2
+        # Yeni script eski versiyon dosyalar ile uyumlu değil - block yap
+        echo -e "${RED}⚠️  Yeni Script Versiyonu Eski Proje Versiyonu ile Uyumlu Değil!${NC}" >&2
+        echo "" >&2
+        echo -e "${YELLOW}Proje MDD Versiyonu:${NC} $PROJECT_VERSION (eski)" >&2
+        echo -e "${YELLOW}Script MDD Versiyonu:${NC} $SCRIPT_VERSION (yeni)" >&2
+        echo "" >&2
+        echo -e "${RED}Bu proje $PROJECT_VERSION ile oluşturulmuş, ancak $SCRIPT_VERSION script'leri yüklü.${NC}" >&2
         echo "" >&2
         echo -e "${YELLOW}⚠️  İleriye Dönük Uyumsuzluk (Forward Incompatibility):${NC}" >&2
-        echo "  v$PROJECT_MAJOR projeleri v$SCRIPT_MAJOR script'leri ile çalışabilir," >&2
-        echo "  ancak bazı yeni özellikler projede kullanılamayabilir." >&2
+        echo "  Yeni script versiyonu ($SCRIPT_VERSION) eski proje versiyonu ($PROJECT_VERSION) ile uyumlu değil." >&2
+        echo "  Veri bozulması veya beklenmeyen davranışlar olabilir." >&2
         echo "" >&2
-        echo -e "${BLUE}Önerilen Çözümler:${NC}" >&2
-        echo "  1. Projeyi $SCRIPT_VERSION ile uyumlu hale getirmek için migration yapın (ÖNERİLEN)" >&2
-        echo "  2. Veya $PROJECT_VERSION script'lerini kullanın:" >&2
+        echo -e "${BLUE}Çözüm: Yeni Versiyonu Silip Eski Versiyonu Yükleyin${NC}" >&2
+        echo "" >&2
+        echo "  1. Yeni versiyonu silin:" >&2
+        echo "     rm -rf ~/.mdd" >&2
+        echo "" >&2
+        echo "  2. Eski versiyonu yükleyin:" >&2
         echo "     git clone -b $PROJECT_VERSION https://github.com/e-faraday/no_go_crayzy_anymore.git ~/.mdd" >&2
+        echo "" >&2
+        echo -e "${YELLOW}Alternatif:${NC} Projeyi $SCRIPT_VERSION ile uyumlu hale getirmek için migration yapın" >&2
     fi
     echo "" >&2
     echo -e "${YELLOW}Not:${NC} Farklı major versiyonlar arasında uyumsuzluk olabilir." >&2

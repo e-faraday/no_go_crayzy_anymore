@@ -46,16 +46,17 @@ MDD (Markdown Driven Development) is a framework that helps you maintain context
 **Important:** If you're setting up MDD in a **new project**, follow these steps:
 
 ```bash
-# 1. Yeni proje klasörünü oluştur
+# 1. Create your new project directory
 mkdir ~/Projects/my-new-project
 cd ~/Projects/my-new-project
 
-# 2. MDD repository'sinden setup script'ini çalıştır
-/Users/emrefiril/.mdd/scripts/setup.sh
+# 2. Run setup script from MDD repository
+# Option A: If you have MDD repository cloned locally
+path/to/mdd-repo/scripts/setup.sh
 
-# Veya eğer MDD repository'sini clone ettiyseniz:
-# git clone https://github.com/e-faraday/no_go_crayzy_anymore.git /tmp/mdd
-# /tmp/mdd/scripts/setup.sh
+# Option B: Clone MDD repository first, then run setup
+git clone https://github.com/e-faraday/no_go_crayzy_anymore.git /tmp/mdd
+/tmp/mdd/scripts/setup.sh
 ```
 
 The `setup.sh` script will:
